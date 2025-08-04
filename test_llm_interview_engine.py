@@ -341,9 +341,8 @@ class TestJSONConfigFunctionality:
         json_str = json.dumps(test_config, indent=2)
         
         with patch("builtins.input") as mock_input:
-            # Mock user inputs for JSON config choice and input
+            # Mock user inputs for JSON config input only (not the project choice)
             mock_input.side_effect = [
-                "json",  # Project choice
                 *json_str.split('\n'),  # JSON config lines
                 "",  # Empty line to finish JSON input
                 ""   # Second empty line to finish
@@ -370,7 +369,6 @@ class TestJSONConfigFunctionality:
         with patch("builtins.input") as mock_input:
             # Mock user inputs for invalid JSON
             mock_input.side_effect = [
-                "json",  # Project choice
                 "{ invalid json }",  # Invalid JSON
                 "",  # Empty line to finish JSON input
                 ""   # Second empty line to finish
@@ -398,9 +396,8 @@ class TestJSONConfigFunctionality:
         json_str = json.dumps(invalid_config, indent=2)
         
         with patch("builtins.input") as mock_input:
-            # Mock user inputs for JSON config choice and input
+            # Mock user inputs for JSON config input only
             mock_input.side_effect = [
-                "json",  # Project choice
                 *json_str.split('\n'),  # JSON config lines
                 "",  # Empty line to finish JSON input
                 ""   # Second empty line to finish
@@ -417,7 +414,7 @@ class TestJSONConfigFunctionality:
 
     def test_env_file_loading(self):
         """Test loading API key from .env file"""
-        with patch("dotenv.load_dotenv") as mock_load_dotenv:
+        with patch("llm_interview_engine.load_dotenv") as mock_load_dotenv:
             with patch("os.getenv", return_value="test-api-key-from-env"):
                 engine = LLMInterviewEngine()
                 
@@ -444,16 +441,15 @@ class TestJSONConfigFunctionality:
                         }
                     ]
                 }
-                ],
+            ],
             "output_format": "markdown"
         }
         
         json_str = json.dumps(test_config, indent=2)
         
         with patch("builtins.input") as mock_input:
-            # Mock user inputs for complete flow
+            # Mock user inputs for JSON config input only
             mock_input.side_effect = [
-                "json",  # Project choice
                 *json_str.split('\n'),  # JSON config lines
                 "",  # Empty line to finish JSON input
                 ""   # Second empty line to finish
