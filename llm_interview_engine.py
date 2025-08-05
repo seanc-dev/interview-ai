@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+import random
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -473,9 +474,9 @@ class LLMInterviewEngine:
                             f"  Persona variant {persona_variant}/{mode.persona_count}..."
                         )
 
-                        # Generate and run interview
+                        # Generate and run interview with run-specific randomization
                         result = self._run_single_interview(
-                            config, mode, hypothesis, persona_variant
+                            config, mode, hypothesis, persona_variant, run_timestamp
                         )
 
                         # Save results to run directory
@@ -529,10 +530,11 @@ class LLMInterviewEngine:
         mode: InterviewMode,
         hypothesis: ProblemHypothesis,
         persona_variant: int,
+        run_timestamp: str,
     ) -> Dict:
-        """Run a single interview simulation"""
+        """Run a single interview simulation with run-specific randomization"""
         prompt = self._generate_interview_prompt(
-            config, mode, hypothesis, persona_variant
+            config, mode, hypothesis, persona_variant, run_timestamp
         )
 
         # Call OpenAI API with retry logic
@@ -905,8 +907,25 @@ class LLMInterviewEngine:
         mode: InterviewMode,
         hypothesis: ProblemHypothesis,
         persona_variant: int,
+        run_timestamp: str,
     ) -> str:
-        """Generate the interview prompt for a specific persona"""
+        """Generate the interview prompt for a specific persona with run-specific randomization"""
+        
+        # Create a unique seed for this specific interview to ensure variety
+        seed_string = f"{run_timestamp}_{mode.mode}_{hypothesis.label}_{persona_variant}"
+        random.seed(hash(seed_string) % (2**32))  # Ensure seed is within valid range
+        
+        # Generate random elements to ensure unique personas each run
+        random_elements = {
+            "age_group": random.choice(["early 20s", "late 20s", "early 30s", "late 30s", "early 40s", "late 40s", "early 50s"]),
+            "life_stage": random.choice(["student", "early career", "mid-career", "career transition", "established professional", "returning to work"]),
+            "emotional_baseline": random.choice(["anxious", "depressed", "overwhelmed", "numb", "frustrated", "hopeful", "determined", "exhausted"]),
+            "coping_style": random.choice(["avoidant", "confrontational", "support-seeking", "self-reliant", "distraction-based", "reflective"]),
+            "readiness_level": random.choice(["resistant", "ambivalent", "curious", "ready", "desperate", "cautious"]),
+            "background_factor": random.choice(["trauma history", "perfectionism", "people-pleasing", "imposter syndrome", "burnout", "caregiver stress", "work-life imbalance"]),
+            "unique_challenge": random.choice(["financial stress", "relationship issues", "health concerns", "career uncertainty", "identity crisis", "social isolation", "time management"]),
+        }
+        
         prompt = f"""[INTERNAL CONTEXT: Product sketch—do NOT share with persona]
 "{config.product_sketch}"
 
@@ -915,10 +934,20 @@ Project: {config.project_name}
 Interview Mode: {mode.mode}
 Problem Hypothesis: {hypothesis.label}
 Hypothesis Description: {hypothesis.description}
-Persona Variant: {persona_variant} (one of three contrasting personas for this hypothesis)
+Persona Variant: {persona_variant} (one of {mode.persona_count} contrasting personas for this hypothesis)
+
+=== RANDOMIZATION CONTEXT ===
+To ensure unique persona generation, incorporate these elements naturally:
+- Age Group: {random_elements['age_group']}
+- Life Stage: {random_elements['life_stage']}
+- Emotional Baseline: {random_elements['emotional_baseline']}
+- Coping Style: {random_elements['coping_style']}
+- Readiness Level: {random_elements['readiness_level']}
+- Background Factor: {random_elements['background_factor']}
+- Unique Challenge: {random_elements['unique_challenge']}
 
 === PHASE 1: Persona Construction ===
-Generate a fully fleshed, believable user persona that contrasts with the other variants along at least two meaningful axes (e.g., age/life stage, emotional baseline, coping strategy, readiness/resistance, internal conflict). Include:
+Generate a fully fleshed, believable user persona that contrasts with the other variants along at least two meaningful axes (e.g., age/life stage, emotional baseline, coping strategy, readiness/resistance, internal conflict). Incorporate the randomization elements naturally into the persona. Include:
 - Placeholder name
 - Demographics and context
 - Emotional baseline and variability
