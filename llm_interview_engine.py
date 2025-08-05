@@ -504,13 +504,17 @@ class LLMInterviewEngine:
                         failed_interviews.append(error_msg)
                         print(f"    ❌ Failed: {str(e)}")
 
-        # Update master report with aggregated insights
-        self._update_master_report(
+        # Create run-specific master report
+        run_master_path = run_dir / "master_report.md"
+        self._create_run_master_report(run_master_path, run_metadata, completed_interviews, failed_interviews, all_insights)
+
+        # Update integrated master report at project level
+        self._update_integrated_master_report(
             master_report_path, run_metadata, completed_interviews, failed_interviews, all_insights
         )
 
-        # Generate/update roadmap
-        self._update_roadmap(roadmap_path, all_insights, run_metadata)
+        # Generate/update integrated roadmap
+        self._update_integrated_roadmap(roadmap_path, all_insights, run_metadata)
 
         print(f"\n🎉 Interview run completed!")
         print(f"✅ Successful: {completed_interviews}")
@@ -635,7 +639,108 @@ class LLMInterviewEngine:
             f.write(f"# Insight Summary for {mode.mode} - {hypothesis.label}\n\n")
             f.write(result.get("insight_summary", ""))
 
-    def _update_master_report(
+    def _create_run_master_report(
+        self,
+        run_master_path: Path,
+        run_metadata: Dict,
+        completed_interviews: int,
+        failed_interviews: List[str],
+        all_insights: List[Dict],
+    ):
+        """Create a run-specific master report"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        content = f"""# Run Master Report
+
+## Run: {timestamp}
+
+**Metadata:**
+- Model: {run_metadata['model']}
+- Modes: {', '.join(run_metadata['modes'])}
+- Total Interviews: {run_metadata['total_interviews']}
+- Completed: {completed_interviews}
+- Failed: {len(failed_interviews)}
+- Run Directory: {run_metadata['run_timestamp']}
+
+"""
+        if failed_interviews:
+            content += "**Failed Interviews:**\n"
+            for failure in failed_interviews:
+                content += f"- {failure}\n"
+            content += "\n"
+
+        if all_insights:
+            content += "**Key Insights Summary:**\n\n"
+            
+            # Group insights by mode
+            mode_insights = {}
+            for insight in all_insights:
+                mode = insight['mode']
+                if mode not in mode_insights:
+                    mode_insights[mode] = []
+                mode_insights[mode].append(insight)
+            
+            for mode, insights in mode_insights.items():
+                content += f"### {mode} Mode\n"
+                
+                # Group by hypothesis
+                hypothesis_insights = {}
+                for insight in insights:
+                    hypothesis = insight['hypothesis']
+                    if hypothesis not in hypothesis_insights:
+                        hypothesis_insights[hypothesis] = []
+                    hypothesis_insights[hypothesis].append(insight)
+                
+                for hypothesis, hypothesis_insights_list in hypothesis_insights.items():
+                    content += f"#### {hypothesis}\n"
+                    
+                    # Extract common themes
+                    solution_fits = []
+                    pain_points = []
+                    micro_features = []
+                    
+                    for insight in hypothesis_insights_list:
+                        insight_text = insight['insights']
+                        
+                        # Extract solution fit
+                        if "Aligned? Yes" in insight_text:
+                            solution_fits.append("✅ Aligned")
+                        elif "Aligned? No" in insight_text:
+                            solution_fits.append("❌ Misaligned")
+                        
+                        # Extract pain points
+                        if "Pain Points:" in insight_text:
+                            pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
+                            pain_points.extend([p.strip() for p in pain_section.split("-") if p.strip()])
+                        
+                        # Extract micro-features
+                        if "Micro-feature Suggestions:" in insight_text:
+                            features_section = insight_text.split("Micro-feature Suggestions:")[1]
+                            micro_features.extend([f.strip() for f in features_section.split("\n") if f.strip() and not f.startswith("-")])
+                    
+                    # Add summary
+                    if solution_fits:
+                        aligned_count = solution_fits.count("✅ Aligned")
+                        total_count = len(solution_fits)
+                        content += f"- **Solution Fit:** {aligned_count}/{total_count} personas aligned\n"
+                    
+                    if pain_points:
+                        unique_pain_points = list(set(pain_points))[:3]  # Top 3 unique pain points
+                        content += f"- **Key Pain Points:** {', '.join(unique_pain_points)}\n"
+                    
+                    if micro_features:
+                        unique_features = list(set(micro_features))[:3]  # Top 3 unique features
+                        content += f"- **Suggested Features:** {', '.join(unique_features)}\n"
+                    
+                    content += "\n"
+                
+                content += "\n"
+
+        # Write to file
+        with open(run_master_path, "w") as f:
+            f.write(content)
+
+    def _update_integrated_master_report(
         self,
         master_report_path: Path,
         run_metadata: Dict,
@@ -643,15 +748,15 @@ class LLMInterviewEngine:
         failed_interviews: List[str],
         all_insights: List[Dict],
     ):
-        """Update the master report with new run data and aggregated insights"""
+        """Update the integrated master report with intelligent merging of insights"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        
         # Create or load existing report
         if master_report_path.exists():
             with open(master_report_path, "r") as f:
                 existing_content = f.read()
         else:
-            existing_content = "# Master Report\n\n"
+            existing_content = "# Integrated Master Report\n\n"
 
         # Add new run entry
         new_entry = f"""
@@ -666,7 +771,6 @@ class LLMInterviewEngine:
 - Run Directory: run_{run_metadata['run_timestamp']}
 
 """
-
         if failed_interviews:
             new_entry += "**Failed Interviews:**\n"
             for failure in failed_interviews:
@@ -748,13 +852,13 @@ class LLMInterviewEngine:
         with open(master_report_path, "w") as f:
             f.write(updated_content)
 
-    def _update_roadmap(
+    def _update_integrated_roadmap(
         self,
         roadmap_path: Path,
         all_insights: List[Dict],
         run_metadata: Dict,
     ):
-        """Generate or update the development roadmap based on interview insights"""
+        """Generate or update the integrated development roadmap with intelligent merging"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Create or load existing roadmap
@@ -762,7 +866,7 @@ class LLMInterviewEngine:
             with open(roadmap_path, "r") as f:
                 existing_content = f.read()
         else:
-            existing_content = "# Development Roadmap\n\n"
+            existing_content = "# Integrated Development Roadmap\n\n"
 
         # Generate new roadmap entry
         new_entry = f"""
