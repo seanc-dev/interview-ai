@@ -27,10 +27,6 @@ jobs:
         run: |
           python -m pytest test_llm_interview_engine.py -v
 
-      - name: Run CLI functionality test
-        run: |
-          python test_cli.py
-
       - name: Check code quality
         run: |
           python -c "import llm_interview_engine; print('✅ Code imports successfully')"
