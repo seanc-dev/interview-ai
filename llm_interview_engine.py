@@ -748,109 +748,211 @@ class LLMInterviewEngine:
         failed_interviews: List[str],
         all_insights: List[Dict],
     ):
-        """Update the integrated master report with intelligent merging of insights"""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        """Update the integrated master report with intelligent compilation of all insights"""
+        # Load all existing run data from the project directory
+        project_dir = master_report_path.parent
+        all_runs_data = []
         
-        # Create or load existing report
-        if master_report_path.exists():
-            with open(master_report_path, "r") as f:
-                existing_content = f.read()
-        else:
-            existing_content = "# Integrated Master Report\n\n"
+        # Collect data from all run directories
+        for run_dir in project_dir.glob("run_*"):
+            run_master_path = run_dir / "master_report.md"
+            if run_master_path.exists():
+                with open(run_master_path, "r") as f:
+                    run_content = f.read()
+                    # Extract run metadata and insights from the content
+                    all_runs_data.append({
+                        "run_dir": run_dir.name,
+                        "content": run_content
+                    })
+        
+        # Add current run data
+        current_run_data = {
+            "run_dir": f"run_{run_metadata['run_timestamp']}",
+            "insights": all_insights,
+            "metadata": run_metadata,
+            "completed": completed_interviews,
+            "failed": failed_interviews
+        }
+        all_runs_data.append(current_run_data)
+        
+        # Compile integrated insights
+        integrated_insights = self._compile_integrated_insights(all_runs_data)
+        
+        # Generate comprehensive master report
+        content = self._generate_comprehensive_master_report(
+            integrated_insights, all_runs_data, project_dir.name
+        )
+        
+        # Write the integrated report
+        with open(master_report_path, "w") as f:
+            f.write(content)
 
-        # Add new run entry
-        new_entry = f"""
-## Run: {timestamp}
+    def _compile_integrated_insights(self, all_runs_data: List[Dict]) -> Dict:
+        """Compile insights from all runs into integrated analysis"""
+        integrated = {
+            "modes": {},
+            "total_interviews": 0,
+            "total_runs": len(all_runs_data),
+            "solution_fit_analysis": {},
+            "pain_points": [],
+            "micro_features": [],
+            "persona_demographics": [],
+            "run_summary": []
+        }
+        
+        for run_data in all_runs_data:
+            if "insights" in run_data:  # Current run
+                insights = run_data["insights"]
+                integrated["total_interviews"] += run_data["completed"]
+                
+                # Process current run insights
+                for insight in insights:
+                    mode = insight['mode']
+                    hypothesis = insight['hypothesis']
+                    insight_text = insight['insights']
+                    
+                    # Initialize mode/hypothesis tracking
+                    if mode not in integrated["modes"]:
+                        integrated["modes"][mode] = {}
+                    if hypothesis not in integrated["modes"][mode]:
+                        integrated["modes"][mode][hypothesis] = {
+                            "solution_fits": [],
+                            "pain_points": [],
+                            "micro_features": [],
+                            "persona_count": 0
+                        }
+                    
+                    # Extract and categorize insights
+                    integrated["modes"][mode][hypothesis]["persona_count"] += 1
+                    
+                    # Solution fit analysis
+                    if "Aligned? Yes" in insight_text:
+                        integrated["modes"][mode][hypothesis]["solution_fits"].append("✅ Aligned")
+                    elif "Aligned? No" in insight_text:
+                        integrated["modes"][mode][hypothesis]["solution_fits"].append("❌ Misaligned")
+                    
+                    # Pain points
+                    if "Pain Points:" in insight_text:
+                        pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
+                        pain_points = []
+                        for line in pain_section.split("\n"):
+                            line = line.strip()
+                            if line.startswith("-") and line[1:].strip():
+                                pain_points.append(line[1:].strip())
+                        integrated["modes"][mode][hypothesis]["pain_points"].extend(pain_points)
+                        integrated["pain_points"].extend(pain_points)
+                    
+                    # Micro-features
+                    if "Micro-feature Suggestions:" in insight_text:
+                        features_section = insight_text.split("Micro-feature Suggestions:")[1]
+                        features = []
+                        for line in features_section.split("\n"):
+                            line = line.strip()
+                            if line and not line.startswith("-") and not line.startswith("##"):
+                                features.append(line)
+                        integrated["modes"][mode][hypothesis]["micro_features"].extend(features)
+                        integrated["micro_features"].extend(features)
+            
+            # Add run summary
+            integrated["run_summary"].append({
+                "run_dir": run_data["run_dir"],
+                "interviews": run_data.get("completed", 0),
+                "failed": run_data.get("failed", 0)
+            })
+        
+        return integrated
 
-**Metadata:**
-- Model: {run_metadata['model']}
-- Modes: {', '.join(run_metadata['modes'])}
-- Total Interviews: {run_metadata['total_interviews']}
-- Completed: {completed_interviews}
-- Failed: {len(failed_interviews)}
-- Run Directory: run_{run_metadata['run_timestamp']}
+    def _generate_comprehensive_master_report(
+        self, integrated_insights: Dict, all_runs_data: List[Dict], project_name: str
+    ) -> str:
+        """Generate a comprehensive, well-structured master report"""
+        content = f"""# Integrated Master Report - {project_name}
+
+## Executive Summary
+
+**Total Analysis:**
+- **Runs Completed:** {integrated_insights['total_runs']}
+- **Total Interviews:** {integrated_insights['total_interviews']}
+- **Modes Analyzed:** {len(integrated_insights['modes'])}
+- **Unique Pain Points Identified:** {len(set(integrated_insights['pain_points']))}
+- **Micro-Features Suggested:** {len(set(integrated_insights['micro_features']))}
+
+## Run History
 
 """
-        if failed_interviews:
-            new_entry += "**Failed Interviews:**\n"
-            for failure in failed_interviews:
-                new_entry += f"- {failure}\n"
-            new_entry += "\n"
-
-        # Add aggregated insights summary
-        if all_insights:
-            new_entry += "**Key Insights Summary:**\n\n"
+        
+        # Add run history
+        for run in integrated_insights["run_summary"]:
+            content += f"- **{run['run_dir']}:** {run['interviews']} interviews, {run['failed']} failed\n"
+        
+        content += "\n## Comprehensive Insights by Mode\n\n"
+        
+        # Generate insights for each mode
+        for mode, hypotheses in integrated_insights["modes"].items():
+            content += f"### {mode} Mode\n\n"
             
-            # Group insights by mode
-            mode_insights = {}
-            for insight in all_insights:
-                mode = insight['mode']
-                if mode not in mode_insights:
-                    mode_insights[mode] = []
-                mode_insights[mode].append(insight)
+            for hypothesis, data in hypotheses.items():
+                content += f"#### {hypothesis}\n"
+                
+                # Solution fit analysis
+                if data["solution_fits"]:
+                    aligned_count = data["solution_fits"].count("✅ Aligned")
+                    total_count = len(data["solution_fits"])
+                    alignment_rate = (aligned_count / total_count) * 100
+                    content += f"- **Solution Alignment:** {aligned_count}/{total_count} personas ({alignment_rate:.1f}%)\n"
+                
+                # Top pain points (deduplicated and ranked)
+                if data["pain_points"]:
+                    pain_point_counts = {}
+                    for point in data["pain_points"]:
+                        pain_point_counts[point] = pain_point_counts.get(point, 0) + 1
+                    top_pain_points = sorted(pain_point_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+                    content += f"- **Top Pain Points:**\n"
+                    for point, count in top_pain_points:
+                        content += f"  - {point} (mentioned {count} times)\n"
+                
+                # Top micro-features (deduplicated and ranked)
+                if data["micro_features"]:
+                    feature_counts = {}
+                    for feature in data["micro_features"]:
+                        feature_counts[feature] = feature_counts.get(feature, 0) + 1
+                    top_features = sorted(feature_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+                    content += f"- **Top Feature Suggestions:**\n"
+                    for feature, count in top_features:
+                        content += f"  - {feature} (suggested {count} times)\n"
+                
+                content += "\n"
+        
+        # Add cross-cutting themes
+        content += "## Cross-Cutting Themes\n\n"
+        
+        # Most common pain points across all modes
+        all_pain_points = integrated_insights["pain_points"]
+        if all_pain_points:
+            pain_point_counts = {}
+            for point in all_pain_points:
+                pain_point_counts[point] = pain_point_counts.get(point, 0) + 1
+            top_global_pain_points = sorted(pain_point_counts.items(), key=lambda x: x[1], reverse=True)[:10]
             
-            for mode, insights in mode_insights.items():
-                new_entry += f"### {mode} Mode\n"
-                
-                # Group by hypothesis
-                hypothesis_insights = {}
-                for insight in insights:
-                    hypothesis = insight['hypothesis']
-                    if hypothesis not in hypothesis_insights:
-                        hypothesis_insights[hypothesis] = []
-                    hypothesis_insights[hypothesis].append(insight)
-                
-                for hypothesis, hypothesis_insights_list in hypothesis_insights.items():
-                    new_entry += f"#### {hypothesis}\n"
-                    
-                    # Extract common themes
-                    solution_fits = []
-                    pain_points = []
-                    micro_features = []
-                    
-                    for insight in hypothesis_insights_list:
-                        insight_text = insight['insights']
-                        
-                        # Extract solution fit
-                        if "Aligned? Yes" in insight_text:
-                            solution_fits.append("✅ Aligned")
-                        elif "Aligned? No" in insight_text:
-                            solution_fits.append("❌ Misaligned")
-                        
-                        # Extract pain points
-                        if "Pain Points:" in insight_text:
-                            pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
-                            pain_points.extend([p.strip() for p in pain_section.split("-") if p.strip()])
-                        
-                        # Extract micro-features
-                        if "Micro-feature Suggestions:" in insight_text:
-                            features_section = insight_text.split("Micro-feature Suggestions:")[1]
-                            micro_features.extend([f.strip() for f in features_section.split("\n") if f.strip() and not f.startswith("-")])
-                    
-                    # Add summary
-                    if solution_fits:
-                        aligned_count = solution_fits.count("✅ Aligned")
-                        total_count = len(solution_fits)
-                        new_entry += f"- **Solution Fit:** {aligned_count}/{total_count} personas aligned\n"
-                    
-                    if pain_points:
-                        unique_pain_points = list(set(pain_points))[:3]  # Top 3 unique pain points
-                        new_entry += f"- **Key Pain Points:** {', '.join(unique_pain_points)}\n"
-                    
-                    if micro_features:
-                        unique_features = list(set(micro_features))[:3]  # Top 3 unique features
-                        new_entry += f"- **Suggested Features:** {', '.join(unique_features)}\n"
-                    
-                    new_entry += "\n"
-                
-                new_entry += "\n"
-
-        # Append to existing content
-        updated_content = existing_content + new_entry
-
-        # Write back to file
-        with open(master_report_path, "w") as f:
-            f.write(updated_content)
+            content += "### Most Common Pain Points\n"
+            for point, count in top_global_pain_points:
+                content += f"- {point} ({count} mentions)\n"
+            content += "\n"
+        
+        # Most common micro-features across all modes
+        all_features = integrated_insights["micro_features"]
+        if all_features:
+            feature_counts = {}
+            for feature in all_features:
+                feature_counts[feature] = feature_counts.get(feature, 0) + 1
+            top_global_features = sorted(feature_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            
+            content += "### Most Requested Features\n"
+            for feature, count in top_global_features:
+                content += f"- {feature} ({count} suggestions)\n"
+            content += "\n"
+        
+        return content
 
     def _update_integrated_roadmap(
         self,
@@ -858,131 +960,229 @@ class LLMInterviewEngine:
         all_insights: List[Dict],
         run_metadata: Dict,
     ):
-        """Generate or update the integrated development roadmap with intelligent merging"""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        """Generate or update the integrated development roadmap with intelligent prioritization"""
+        # Load all existing run data from the project directory
+        project_dir = roadmap_path.parent
+        all_runs_data = []
         
-        # Create or load existing roadmap
-        if roadmap_path.exists():
-            with open(roadmap_path, "r") as f:
-                existing_content = f.read()
-        else:
-            existing_content = "# Integrated Development Roadmap\n\n"
+        # Collect data from all run directories
+        for run_dir in project_dir.glob("run_*"):
+            run_master_path = run_dir / "master_report.md"
+            if run_master_path.exists():
+                with open(run_master_path, "r") as f:
+                    run_content = f.read()
+                    all_runs_data.append({
+                        "run_dir": run_dir.name,
+                        "content": run_content
+                    })
+        
+        # Add current run data
+        current_run_data = {
+            "run_dir": f"run_{run_metadata['run_timestamp']}",
+            "insights": all_insights,
+            "metadata": run_metadata
+        }
+        all_runs_data.append(current_run_data)
+        
+        # Compile integrated roadmap data
+        roadmap_data = self._compile_roadmap_data(all_runs_data)
+        
+        # Generate comprehensive roadmap
+        content = self._generate_comprehensive_roadmap(roadmap_data, project_dir.name)
+        
+        # Write the integrated roadmap
+        with open(roadmap_path, "w") as f:
+            f.write(content)
 
-        # Generate new roadmap entry
-        new_entry = f"""
-## Run: {timestamp}
+    def _compile_roadmap_data(self, all_runs_data: List[Dict]) -> Dict:
+        """Compile roadmap data from all runs"""
+        roadmap_data = {
+            "solution_fit_scores": {},
+            "micro_features": [],
+            "pain_points": [],
+            "run_summary": [],
+            "total_interviews": 0
+        }
+        
+        for run_data in all_runs_data:
+            if "insights" in run_data:  # Current run
+                insights = run_data["insights"]
+                roadmap_data["total_interviews"] += run_data["metadata"]["total_interviews"]
+                
+                for insight in insights:
+                    insight_text = insight['insights']
+                    mode = insight['mode']
+                    hypothesis = insight['hypothesis']
+                    
+                    # Track solution fit by mode/hypothesis
+                    key = f"{mode}/{hypothesis}"
+                    if key not in roadmap_data["solution_fit_scores"]:
+                        roadmap_data["solution_fit_scores"][key] = {"aligned": 0, "total": 0}
+                    
+                    if "Aligned? Yes" in insight_text:
+                        roadmap_data["solution_fit_scores"][key]["aligned"] += 1
+                    roadmap_data["solution_fit_scores"][key]["total"] += 1
+                    
+                    # Extract micro-features
+                    if "Micro-feature Suggestions:" in insight_text:
+                        features_section = insight_text.split("Micro-feature Suggestions:")[1]
+                        features = []
+                        for line in features_section.split("\n"):
+                            line = line.strip()
+                            if line and not line.startswith("-") and not line.startswith("##"):
+                                features.append(line)
+                        roadmap_data["micro_features"].extend(features)
+                    
+                    # Extract pain points
+                    if "Pain Points:" in insight_text:
+                        pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
+                        pain_points = []
+                        for line in pain_section.split("\n"):
+                            line = line.strip()
+                            if line.startswith("-") and line[1:].strip():
+                                pain_points.append(line[1:].strip())
+                        roadmap_data["pain_points"].extend(pain_points)
+            
+            # Add run summary
+            roadmap_data["run_summary"].append({
+                "run_dir": run_data["run_dir"],
+                "interviews": run_data.get("metadata", {}).get("total_interviews", 0)
+            })
+        
+        return roadmap_data
 
-**Run Metadata:**
-- Model: {run_metadata['model']}
-- Modes: {', '.join(run_metadata['modes'])}
-- Total Interviews: {run_metadata['total_interviews']}
-- Run Directory: run_{run_metadata['run_timestamp']}
+    def _generate_comprehensive_roadmap(self, roadmap_data: Dict, project_name: str) -> str:
+        """Generate a comprehensive, prioritized development roadmap"""
+        content = f"""# Integrated Development Roadmap - {project_name}
+
+## Executive Summary
+
+**Analysis Overview:**
+- **Total Runs:** {len(roadmap_data['run_summary'])}
+- **Total Interviews:** {roadmap_data['total_interviews']}
+- **Features Analyzed:** {len(roadmap_data['solution_fit_scores'])}
+- **Unique Micro-Features:** {len(set(roadmap_data['micro_features']))}
+- **Pain Points Identified:** {len(set(roadmap_data['pain_points']))}
+
+## Run History
 
 """
-
-        # Analyze insights and generate roadmap
-        if all_insights:
-            # Extract all micro-features and pain points
-            all_micro_features = []
-            all_pain_points = []
-            solution_fit_scores = {}
-            
-            for insight in all_insights:
-                insight_text = insight['insights']
-                mode = insight['mode']
-                hypothesis = insight['hypothesis']
-                
-                # Track solution fit by mode/hypothesis
-                key = f"{mode}/{hypothesis}"
-                if key not in solution_fit_scores:
-                    solution_fit_scores[key] = {"aligned": 0, "total": 0}
-                
-                if "Aligned? Yes" in insight_text:
-                    solution_fit_scores[key]["aligned"] += 1
-                solution_fit_scores[key]["total"] += 1
-                
-                # Extract micro-features
-                if "Micro-feature Suggestions:" in insight_text:
-                    features_section = insight_text.split("Micro-feature Suggestions:")[1]
-                    features = [f.strip() for f in features_section.split("\n") if f.strip() and not f.startswith("-")]
-                    all_micro_features.extend(features)
-                
-                # Extract pain points
-                if "Pain Points:" in insight_text:
-                    pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
-                    pain_points = [p.strip() for p in pain_section.split("-") if p.strip()]
-                    all_pain_points.extend(pain_points)
-            
-            # Generate prioritized roadmap
-            new_entry += "### Prioritized Development Recommendations\n\n"
-            
-            # High Priority: Features with strong alignment
-            high_priority_features = []
-            medium_priority_features = []
-            low_priority_features = []
-            
-            # Categorize features by alignment strength
-            for key, scores in solution_fit_scores.items():
+        
+        # Add run history
+        for run in roadmap_data["run_summary"]:
+            content += f"- **{run['run_dir']}:** {run['interviews']} interviews\n"
+        
+        content += "\n## Prioritized Development Recommendations\n\n"
+        
+        # Categorize features by alignment strength
+        high_priority = []
+        medium_priority = []
+        low_priority = []
+        
+        for key, scores in roadmap_data["solution_fit_scores"].items():
+            if scores["total"] > 0:
                 alignment_rate = scores["aligned"] / scores["total"]
-                if alignment_rate >= 0.8:
-                    high_priority_features.append(key)
-                elif alignment_rate >= 0.5:
-                    medium_priority_features.append(key)
+                if alignment_rate >= 0.7:
+                    high_priority.append((key, alignment_rate))
+                elif alignment_rate >= 0.4:
+                    medium_priority.append((key, alignment_rate))
                 else:
-                    low_priority_features.append(key)
+                    low_priority.append((key, alignment_rate))
+        
+        # Sort by alignment rate
+        high_priority.sort(key=lambda x: x[1], reverse=True)
+        medium_priority.sort(key=lambda x: x[1], reverse=True)
+        low_priority.sort(key=lambda x: x[1], reverse=True)
+        
+        # High Priority Features
+        if high_priority:
+            content += "### 🔥 High Priority (Strong User Alignment)\n\n"
+            for feature, alignment_rate in high_priority:
+                mode, hypothesis = feature.split("/")
+                content += f"#### {hypothesis} ({mode} mode)\n"
+                content += f"- **Alignment Rate:** {alignment_rate:.1%}\n"
+                content += f"- **Justification:** Strong user alignment across diverse personas\n"
+                content += f"- **Success Measures:** User engagement, retention, positive feedback\n"
+                content += f"- **Timeline:** Next sprint\n"
+                content += f"- **Implementation Priority:** Critical\n\n"
+        
+        # Medium Priority Features
+        if medium_priority:
+            content += "### ⚡ Medium Priority (Moderate User Alignment)\n\n"
+            for feature, alignment_rate in medium_priority:
+                mode, hypothesis = feature.split("/")
+                content += f"#### {hypothesis} ({mode} mode)\n"
+                content += f"- **Alignment Rate:** {alignment_rate:.1%}\n"
+                content += f"- **Justification:** Moderate user alignment, needs refinement\n"
+                content += f"- **Success Measures:** User testing, iteration based on feedback\n"
+                content += f"- **Timeline:** Next quarter\n"
+                content += f"- **Implementation Priority:** Important\n\n"
+        
+        # Low Priority Features
+        if low_priority:
+            content += "### 📋 Low Priority (Weak User Alignment)\n\n"
+            for feature, alignment_rate in low_priority:
+                mode, hypothesis = feature.split("/")
+                content += f"#### {hypothesis} ({mode} mode)\n"
+                content += f"- **Alignment Rate:** {alignment_rate:.1%}\n"
+                content += f"- **Justification:** Weak user alignment, needs significant rethinking\n"
+                content += f"- **Success Measures:** User research, concept validation\n"
+                content += f"- **Timeline:** Future consideration\n"
+                content += f"- **Implementation Priority:** Low\n\n"
+        
+        # Micro-Feature Analysis
+        if roadmap_data["micro_features"]:
+            feature_counts = {}
+            for feature in roadmap_data["micro_features"]:
+                feature_counts[feature] = feature_counts.get(feature, 0) + 1
             
-            # Add high priority recommendations
-            if high_priority_features:
-                new_entry += "#### 🔥 High Priority (Strong User Alignment)\n\n"
-                for feature in high_priority_features:
-                    mode, hypothesis = feature.split("/")
-                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
-                    new_entry += f"  - **Justification:** Strong user alignment across personas\n"
-                    new_entry += f"  - **Success Measures:** User engagement, retention, positive feedback\n"
-                    new_entry += f"  - **Timeline:** Next sprint\n\n"
+            top_features = sorted(feature_counts.items(), key=lambda x: x[1], reverse=True)[:15]
             
-            # Add medium priority recommendations
-            if medium_priority_features:
-                new_entry += "#### ⚡ Medium Priority (Moderate User Alignment)\n\n"
-                for feature in medium_priority_features:
-                    mode, hypothesis = feature.split("/")
-                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
-                    new_entry += f"  - **Justification:** Moderate user alignment, needs refinement\n"
-                    new_entry += f"  - **Success Measures:** User testing, iteration based on feedback\n"
-                    new_entry += f"  - **Timeline:** Next quarter\n\n"
+            content += "## 🎯 Top Micro-Feature Suggestions\n\n"
+            content += "**Ranked by frequency of suggestion across all interviews:**\n\n"
             
-            # Add low priority recommendations
-            if low_priority_features:
-                new_entry += "#### 📋 Low Priority (Weak User Alignment)\n\n"
-                for feature in low_priority_features:
-                    mode, hypothesis = feature.split("/")
-                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
-                    new_entry += f"  - **Justification:** Weak user alignment, needs significant rethinking\n"
-                    new_entry += f"  - **Success Measures:** User research, concept validation\n"
-                    new_entry += f"  - **Timeline:** Future consideration\n\n"
+            for i, (feature, count) in enumerate(top_features, 1):
+                content += f"{i}. **{feature}** ({count} suggestions)\n"
+            content += "\n"
+        
+        # Pain Point Analysis
+        if roadmap_data["pain_points"]:
+            pain_point_counts = {}
+            for point in roadmap_data["pain_points"]:
+                pain_point_counts[point] = pain_point_counts.get(point, 0) + 1
             
-            # Add micro-feature suggestions
-            if all_micro_features:
-                unique_features = list(set(all_micro_features))
-                new_entry += "### 🎯 Micro-Feature Suggestions\n\n"
-                for i, feature in enumerate(unique_features[:10], 1):  # Top 10 features
-                    new_entry += f"{i}. **{feature}**\n"
-                new_entry += "\n"
+            top_pain_points = sorted(pain_point_counts.items(), key=lambda x: x[1], reverse=True)[:10]
             
-            # Add pain point analysis
-            if all_pain_points:
-                unique_pain_points = list(set(all_pain_points))
-                new_entry += "### 🚨 Key Pain Points to Address\n\n"
-                for i, pain_point in enumerate(unique_pain_points[:5], 1):  # Top 5 pain points
-                    new_entry += f"{i}. {pain_point}\n"
-                new_entry += "\n"
-
-        # Append to existing content
-        updated_content = existing_content + new_entry
-
-        # Write back to file
-        with open(roadmap_path, "w") as f:
-            f.write(updated_content)
+            content += "## 🚨 Critical Pain Points to Address\n\n"
+            content += "**Ranked by frequency of mention across all interviews:**\n\n"
+            
+            for i, (point, count) in enumerate(top_pain_points, 1):
+                content += f"{i}. **{point}** ({count} mentions)\n"
+            content += "\n"
+        
+        # Implementation Strategy
+        content += "## 📋 Implementation Strategy\n\n"
+        
+        if high_priority:
+            content += "### Phase 1: High-Priority Features (Next Sprint)\n"
+            for feature, _ in high_priority[:3]:  # Top 3
+                mode, hypothesis = feature.split("/")
+                content += f"- Implement {hypothesis} for {mode} mode\n"
+            content += "\n"
+        
+        if medium_priority:
+            content += "### Phase 2: Medium-Priority Features (Next Quarter)\n"
+            for feature, _ in medium_priority[:3]:  # Top 3
+                mode, hypothesis = feature.split("/")
+                content += f"- Research and refine {hypothesis} for {mode} mode\n"
+            content += "\n"
+        
+        content += "### Phase 3: Continuous Improvement\n"
+        content += "- Monitor user feedback on implemented features\n"
+        content += "- Iterate based on real-world usage data\n"
+        content += "- Plan next round of user research\n"
+        
+        return content
 
     def _create_test_config(self) -> ProjectConfig:
         """Create a test configuration for testing purposes"""

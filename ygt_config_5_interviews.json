@@ -1,0 +1,52 @@
+{
+  "project_name": "YGT",
+  "llm_model": "gpt-4o",
+  "product_sketch": "A trauma-aware productivity app that helps users build sustainable, compassionate work habits through gentle nudges, energy awareness, and boundary support. The app adapts to individual trauma responses and provides personalized strategies for managing overwhelm, perfectionism, and burnout.",
+  "output_format": "markdown",
+  "interview_modes": [
+    {
+      "mode": "Recovery",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Overwhelm Regulation",
+          "description": "Users struggle to manage overwhelming workloads and emotional responses to stress"
+        },
+        {
+          "label": "Trauma-Aware Productivity",
+          "description": "Users need productivity tools that don't trigger trauma responses or shame"
+        }
+      ]
+    },
+    {
+      "mode": "Stability",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Energy Awareness and Boundary Support",
+          "description": "Users need help recognizing their energy levels and setting healthy boundaries"
+        }
+      ]
+    },
+    {
+      "mode": "Growth",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Values-Based Growth Nudges",
+          "description": "Users want to grow and develop while staying aligned with their core values"
+        }
+      ]
+    },
+    {
+      "mode": "Thriving",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Peak-State Reflection and Momentum",
+          "description": "Users want to capture and build on their peak performance moments"
+        }
+      ]
+    }
+  ]
+}
