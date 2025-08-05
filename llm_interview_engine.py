@@ -107,14 +107,14 @@ class LLMInterviewEngine:
         """
         # Load environment variables from .env file
         load_dotenv()
-        
+
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError(
                 "OpenAI API key required. Set OPENAI_API_KEY in .env file, environment variable, or pass api_key parameter."
             )
 
-        openai.api_key = self.api_key
+        self.client = openai.OpenAI(api_key=self.api_key)
         self.output_dir = Path("outputs")
         self.output_dir.mkdir(exist_ok=True)
 
@@ -235,34 +235,36 @@ class LLMInterviewEngine:
         print("\n📋 Loading Configuration from JSON")
         print("-" * 40)
         print("Paste your JSON configuration below (press Enter twice when done):")
-        
+
         json_lines = []
         while True:
             line = input()
             if line == "" and json_lines and json_lines[-1] == "":
                 break
             json_lines.append(line)
-        
+
         json_str = "\n".join(json_lines[:-1])  # Remove last empty line
-        
+
         try:
             config_data = json.loads(json_str)
             config = self._dict_to_config(config_data)
-            
+
             # Validate required fields
             if not config.project_name:
                 raise ValueError("Project name is required in JSON config")
-            
-            print(f"\n✅ Successfully loaded configuration for project: {config.project_name}")
-            
+
+            print(
+                f"\n✅ Successfully loaded configuration for project: {config.project_name}"
+            )
+
             # Show summary
             self._show_project_summary(config)
-            
+
             # Save config
             self._save_config(config)
-            
+
             return config
-            
+
         except json.JSONDecodeError as e:
             print(f"❌ Invalid JSON format: {e}")
             print("Please check your JSON syntax and try again.")
@@ -434,22 +436,30 @@ class LLMInterviewEngine:
             print("Interview run cancelled.")
             return
 
-        # Create project directory
+        # Create project directory and run-specific subdirectory
         project_dir = self.output_dir / config.project_name
         project_dir.mkdir(exist_ok=True)
+        
+        run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_dir = project_dir / f"run_{run_timestamp}"
+        run_dir.mkdir(exist_ok=True)
 
-        # Initialize master report
+        # Initialize master report and roadmap paths (at project level)
         master_report_path = project_dir / "master_report.md"
+        roadmap_path = project_dir / "roadmap.md"
+        
         run_metadata = {
             "timestamp": datetime.now().isoformat(),
             "model": config.llm_model,
             "modes": [mode.mode for mode in config.interview_modes],
             "total_interviews": total_interviews,
+            "run_timestamp": run_timestamp,
         }
 
         # Run interviews
         completed_interviews = 0
         failed_interviews = []
+        all_insights = []
 
         for mode in config.interview_modes:
             for hypothesis in mode.problem_hypotheses:
@@ -468,10 +478,19 @@ class LLMInterviewEngine:
                             config, mode, hypothesis, persona_variant
                         )
 
-                        # Save results
+                        # Save results to run directory
                         self._save_interview_results(
-                            project_dir, mode, hypothesis, persona_variant, result
+                            run_dir, mode, hypothesis, persona_variant, result
                         )
+
+                        # Collect insights for aggregation
+                        if "insight_summary" in result:
+                            all_insights.append({
+                                "mode": mode.mode,
+                                "hypothesis": hypothesis.label,
+                                "persona_variant": persona_variant,
+                                "insights": result["insight_summary"]
+                            })
 
                         completed_interviews += 1
                         print(
@@ -484,14 +503,20 @@ class LLMInterviewEngine:
                         failed_interviews.append(error_msg)
                         print(f"    ❌ Failed: {str(e)}")
 
-        # Update master report
+        # Update master report with aggregated insights
         self._update_master_report(
-            master_report_path, run_metadata, completed_interviews, failed_interviews
+            master_report_path, run_metadata, completed_interviews, failed_interviews, all_insights
         )
+
+        # Generate/update roadmap
+        self._update_roadmap(roadmap_path, all_insights, run_metadata)
 
         print(f"\n🎉 Interview run completed!")
         print(f"✅ Successful: {completed_interviews}")
         print(f"❌ Failed: {len(failed_interviews)}")
+        print(f"📁 Results saved to: {run_dir}")
+        print(f"📊 Master report updated: {master_report_path}")
+        print(f"🗺️  Roadmap updated: {roadmap_path}")
 
         if failed_interviews:
             print("\nFailed interviews:")
@@ -525,7 +550,7 @@ class LLMInterviewEngine:
         """Call OpenAI API with exponential backoff retry logic"""
         for attempt in range(max_retries):
             try:
-                response = openai.chat.completions.create(
+                response = self.client.chat.completions.create(
                     model=model,
                     messages=[
                         {
@@ -614,8 +639,9 @@ class LLMInterviewEngine:
         run_metadata: Dict,
         completed_interviews: int,
         failed_interviews: List[str],
+        all_insights: List[Dict],
     ):
-        """Update the master report with new run data"""
+        """Update the master report with new run data and aggregated insights"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Create or load existing report
@@ -635,6 +661,7 @@ class LLMInterviewEngine:
 - Total Interviews: {run_metadata['total_interviews']}
 - Completed: {completed_interviews}
 - Failed: {len(failed_interviews)}
+- Run Directory: run_{run_metadata['run_timestamp']}
 
 """
 
@@ -644,11 +671,211 @@ class LLMInterviewEngine:
                 new_entry += f"- {failure}\n"
             new_entry += "\n"
 
+        # Add aggregated insights summary
+        if all_insights:
+            new_entry += "**Key Insights Summary:**\n\n"
+            
+            # Group insights by mode
+            mode_insights = {}
+            for insight in all_insights:
+                mode = insight['mode']
+                if mode not in mode_insights:
+                    mode_insights[mode] = []
+                mode_insights[mode].append(insight)
+            
+            for mode, insights in mode_insights.items():
+                new_entry += f"### {mode} Mode\n"
+                
+                # Group by hypothesis
+                hypothesis_insights = {}
+                for insight in insights:
+                    hypothesis = insight['hypothesis']
+                    if hypothesis not in hypothesis_insights:
+                        hypothesis_insights[hypothesis] = []
+                    hypothesis_insights[hypothesis].append(insight)
+                
+                for hypothesis, hypothesis_insights_list in hypothesis_insights.items():
+                    new_entry += f"#### {hypothesis}\n"
+                    
+                    # Extract common themes
+                    solution_fits = []
+                    pain_points = []
+                    micro_features = []
+                    
+                    for insight in hypothesis_insights_list:
+                        insight_text = insight['insights']
+                        
+                        # Extract solution fit
+                        if "Aligned? Yes" in insight_text:
+                            solution_fits.append("✅ Aligned")
+                        elif "Aligned? No" in insight_text:
+                            solution_fits.append("❌ Misaligned")
+                        
+                        # Extract pain points
+                        if "Pain Points:" in insight_text:
+                            pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
+                            pain_points.extend([p.strip() for p in pain_section.split("-") if p.strip()])
+                        
+                        # Extract micro-features
+                        if "Micro-feature Suggestions:" in insight_text:
+                            features_section = insight_text.split("Micro-feature Suggestions:")[1]
+                            micro_features.extend([f.strip() for f in features_section.split("\n") if f.strip() and not f.startswith("-")])
+                    
+                    # Add summary
+                    if solution_fits:
+                        aligned_count = solution_fits.count("✅ Aligned")
+                        total_count = len(solution_fits)
+                        new_entry += f"- **Solution Fit:** {aligned_count}/{total_count} personas aligned\n"
+                    
+                    if pain_points:
+                        unique_pain_points = list(set(pain_points))[:3]  # Top 3 unique pain points
+                        new_entry += f"- **Key Pain Points:** {', '.join(unique_pain_points)}\n"
+                    
+                    if micro_features:
+                        unique_features = list(set(micro_features))[:3]  # Top 3 unique features
+                        new_entry += f"- **Suggested Features:** {', '.join(unique_features)}\n"
+                    
+                    new_entry += "\n"
+                
+                new_entry += "\n"
+
         # Append to existing content
         updated_content = existing_content + new_entry
 
         # Write back to file
         with open(master_report_path, "w") as f:
+            f.write(updated_content)
+
+    def _update_roadmap(
+        self,
+        roadmap_path: Path,
+        all_insights: List[Dict],
+        run_metadata: Dict,
+    ):
+        """Generate or update the development roadmap based on interview insights"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create or load existing roadmap
+        if roadmap_path.exists():
+            with open(roadmap_path, "r") as f:
+                existing_content = f.read()
+        else:
+            existing_content = "# Development Roadmap\n\n"
+
+        # Generate new roadmap entry
+        new_entry = f"""
+## Run: {timestamp}
+
+**Run Metadata:**
+- Model: {run_metadata['model']}
+- Modes: {', '.join(run_metadata['modes'])}
+- Total Interviews: {run_metadata['total_interviews']}
+- Run Directory: run_{run_metadata['run_timestamp']}
+
+"""
+
+        # Analyze insights and generate roadmap
+        if all_insights:
+            # Extract all micro-features and pain points
+            all_micro_features = []
+            all_pain_points = []
+            solution_fit_scores = {}
+            
+            for insight in all_insights:
+                insight_text = insight['insights']
+                mode = insight['mode']
+                hypothesis = insight['hypothesis']
+                
+                # Track solution fit by mode/hypothesis
+                key = f"{mode}/{hypothesis}"
+                if key not in solution_fit_scores:
+                    solution_fit_scores[key] = {"aligned": 0, "total": 0}
+                
+                if "Aligned? Yes" in insight_text:
+                    solution_fit_scores[key]["aligned"] += 1
+                solution_fit_scores[key]["total"] += 1
+                
+                # Extract micro-features
+                if "Micro-feature Suggestions:" in insight_text:
+                    features_section = insight_text.split("Micro-feature Suggestions:")[1]
+                    features = [f.strip() for f in features_section.split("\n") if f.strip() and not f.startswith("-")]
+                    all_micro_features.extend(features)
+                
+                # Extract pain points
+                if "Pain Points:" in insight_text:
+                    pain_section = insight_text.split("Pain Points:")[1].split("Desired Outcomes:")[0]
+                    pain_points = [p.strip() for p in pain_section.split("-") if p.strip()]
+                    all_pain_points.extend(pain_points)
+            
+            # Generate prioritized roadmap
+            new_entry += "### Prioritized Development Recommendations\n\n"
+            
+            # High Priority: Features with strong alignment
+            high_priority_features = []
+            medium_priority_features = []
+            low_priority_features = []
+            
+            # Categorize features by alignment strength
+            for key, scores in solution_fit_scores.items():
+                alignment_rate = scores["aligned"] / scores["total"]
+                if alignment_rate >= 0.8:
+                    high_priority_features.append(key)
+                elif alignment_rate >= 0.5:
+                    medium_priority_features.append(key)
+                else:
+                    low_priority_features.append(key)
+            
+            # Add high priority recommendations
+            if high_priority_features:
+                new_entry += "#### 🔥 High Priority (Strong User Alignment)\n\n"
+                for feature in high_priority_features:
+                    mode, hypothesis = feature.split("/")
+                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
+                    new_entry += f"  - **Justification:** Strong user alignment across personas\n"
+                    new_entry += f"  - **Success Measures:** User engagement, retention, positive feedback\n"
+                    new_entry += f"  - **Timeline:** Next sprint\n\n"
+            
+            # Add medium priority recommendations
+            if medium_priority_features:
+                new_entry += "#### ⚡ Medium Priority (Moderate User Alignment)\n\n"
+                for feature in medium_priority_features:
+                    mode, hypothesis = feature.split("/")
+                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
+                    new_entry += f"  - **Justification:** Moderate user alignment, needs refinement\n"
+                    new_entry += f"  - **Success Measures:** User testing, iteration based on feedback\n"
+                    new_entry += f"  - **Timeline:** Next quarter\n\n"
+            
+            # Add low priority recommendations
+            if low_priority_features:
+                new_entry += "#### 📋 Low Priority (Weak User Alignment)\n\n"
+                for feature in low_priority_features:
+                    mode, hypothesis = feature.split("/")
+                    new_entry += f"- **{hypothesis}** ({mode} mode)\n"
+                    new_entry += f"  - **Justification:** Weak user alignment, needs significant rethinking\n"
+                    new_entry += f"  - **Success Measures:** User research, concept validation\n"
+                    new_entry += f"  - **Timeline:** Future consideration\n\n"
+            
+            # Add micro-feature suggestions
+            if all_micro_features:
+                unique_features = list(set(all_micro_features))
+                new_entry += "### 🎯 Micro-Feature Suggestions\n\n"
+                for i, feature in enumerate(unique_features[:10], 1):  # Top 10 features
+                    new_entry += f"{i}. **{feature}**\n"
+                new_entry += "\n"
+            
+            # Add pain point analysis
+            if all_pain_points:
+                unique_pain_points = list(set(all_pain_points))
+                new_entry += "### 🚨 Key Pain Points to Address\n\n"
+                for i, pain_point in enumerate(unique_pain_points[:5], 1):  # Top 5 pain points
+                    new_entry += f"{i}. {pain_point}\n"
+                new_entry += "\n"
+
+        # Append to existing content
+        updated_content = existing_content + new_entry
+
+        # Write back to file
+        with open(roadmap_path, "w") as f:
             f.write(updated_content)
 
     def _create_test_config(self) -> ProjectConfig:
