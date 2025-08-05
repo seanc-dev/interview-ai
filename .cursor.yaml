@@ -1,0 +1,20 @@
+# .cursor.yaml
+language: python
+auto_confirm: true # skip every prompt
+commit: true # auto-commit its edits
+branch: cursor/auto # target branch
+run:
+  - pytest tests/test_date_utils.py -q
+auto_run:
+  # by default, everything’s allowed
+  # allowlist: ['*']
+
+  denylist:
+    - rm *
+    - mv *
+    - git reset --hard
+    - git reset --hard *
+    - git clean *
+    - sudo *
+    - ^docker\s+(?!build\b).*$  
+    - ^docker-compose\s+(?!(?:up|down)\b).*$

@@ -1,0 +1,36 @@
+{
+  "project_name": "Emotional_Regulation_Coaching",
+  "llm_model": "gpt-4o",
+  "product_sketch": "An AI-powered emotional regulation coaching app that helps users identify emotional triggers, develop healthy coping strategies, and build emotional resilience through personalized guidance and real-time support.",
+  "interview_modes": [
+    {
+      "mode": "trauma_informed",
+      "persona_count": 3,
+      "problem_hypotheses": [
+        {
+          "label": "emotional_overwhelm",
+          "description": "Users experience intense emotional overwhelm that interferes with daily functioning and decision-making, leading to avoidance behaviors and relationship strain."
+        },
+        {
+          "label": "trigger_identification",
+          "description": "Users struggle to identify and understand their emotional triggers, making it difficult to develop effective coping strategies and maintain emotional stability."
+        }
+      ]
+    },
+    {
+      "mode": "cognitive_behavioral",
+      "persona_count": 3,
+      "problem_hypotheses": [
+        {
+          "label": "negative_thought_patterns",
+          "description": "Users engage in persistent negative thought patterns that amplify emotional distress and prevent them from accessing positive coping resources."
+        },
+        {
+          "label": "coping_skill_gaps",
+          "description": "Users lack effective coping skills and default to maladaptive behaviors when faced with emotional challenges."
+        }
+      ]
+    }
+  ],
+  "output_format": "markdown"
+}

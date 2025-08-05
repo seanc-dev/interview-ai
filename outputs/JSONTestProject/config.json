@@ -1,0 +1,18 @@
+{
+  "project_name": "JSONTestProject",
+  "llm_model": "gpt-4o",
+  "product_sketch": "A test product for JSON config",
+  "interview_modes": [
+    {
+      "mode": "test_mode",
+      "persona_count": 2,
+      "problem_hypotheses": [
+        {
+          "label": "test_hypothesis",
+          "description": "A test hypothesis for JSON config"
+        }
+      ]
+    }
+  ],
+  "output_format": "markdown"
+}

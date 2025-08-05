@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          python -m pytest test_llm_interview_engine.py -v
+
+      - name: Check code quality
+        run: |
+          python -c "import llm_interview_engine; print('✅ Code imports successfully')"
+
+  feature-test:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[feature:') || contains(github.event.head_commit.message, '[test:')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run feature-specific tests
+        run: |
+          # Extract feature name from commit message
+          if [[ "${{ github.event.head_commit.message }}" =~ \[feature:([^\]]+)\] ]]; then
+            FEATURE="${BASH_REMATCH[1]}"
+            echo "Running tests for feature: $FEATURE"
+            python -m pytest test_llm_interview_engine.py -k "$FEATURE" -v
+          else
+            echo "No specific feature tag found, running all tests"
+            python -m pytest test_llm_interview_engine.py -v
+          fi
