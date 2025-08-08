@@ -1,6 +1,6 @@
 {
   "project_name": "Emotional_Regulation_Coaching",
-  "llm_model": "gpt-4o",
+  "llm_model": "gpt-5-mini",
   "product_sketch": "An AI-powered emotional regulation coaching app that helps users identify emotional triggers, develop healthy coping strategies, and build emotional resilience through personalized guidance and real-time support.",
   "interview_modes": [
     {

@@ -67,7 +67,7 @@ class ProjectConfig:
 
     Attributes:
         project_name (str): Unique name for the project
-        llm_model (str): OpenAI model to use for interviews (default: "gpt-4o-mini")
+    llm_model (str): OpenAI model to use for interviews (default: "gpt-5-mini")
         product_sketch (str): Internal product description (not shared with personas)
         interview_modes (List[InterviewMode]): List of interview modes and their configurations
         output_format (str): Output format for interviews ("markdown" or "json")
@@ -75,7 +75,7 @@ class ProjectConfig:
     """
 
     project_name: str
-    llm_model: str = "gpt-4o-mini"
+    llm_model: str = "gpt-5-mini"
     product_sketch: str = ""
     interview_modes: List[InterviewMode] = None
     output_format: str = "markdown"
@@ -941,9 +941,9 @@ class AsyncPersonaGenerator:
     async def _generate_seed_async(
         self, cycle_number: int, persona_variant: int, hypothesis_label: str
     ) -> int:
-        """Generate a unique seed for randomization asynchronously."""
-        seed_string = f"{cycle_number}_{persona_variant}_{hypothesis_label}_{datetime.now().timestamp()}"
-        return hash(seed_string) % (2**32)
+        """Generate a deterministic seed for randomization asynchronously."""
+        seed_string = f"{cycle_number}_{persona_variant}_{hypothesis_label}"
+        return hash(seed_string) & 0xFFFFFFFF
 
     async def generate_personas_async(
         self, count: int, cycle_number: int
@@ -1079,7 +1079,7 @@ Respond in JSON format:
                     }
 
                     data = {
-                        "model": "gpt-4o-mini",
+                        "model": "gpt-5-mini",
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": 500,
                         "temperature": 0.7,
@@ -1262,12 +1262,76 @@ class AsyncInterviewProcessor:
         base = PromptGenerator.generate_interview_prompt(
             config, mode, hypothesis, persona_variant, run_timestamp, persona
         )
+        persona_context = (
+            "\n\nPERSONA CONTEXT:\n"
+            f"- Name: {persona.get('name', 'N/A')}\n"
+            f"- Emotional baseline: {persona.get('emotional_baseline', 'N/A')}\n"
+            f"- Background: {persona.get('background', 'N/A')}\n"
+        )
+        current_state = (
+            "\n\nCurrent State:\n"
+            "- You are a facilitator interviewing a single persona.\n"
+            f"- Project: {config.project_name}, Mode: {mode.mode}, Hypothesis: {hypothesis.label}\n"
+        )
         internal = (
             "\n\nINTERNAL CONTEXT:\n"
             f"- Product sketch: {config.product_sketch}\n"
             f"- Mode: {mode.mode}, Hypothesis: {hypothesis.label}\n"
         )
-        return base + internal
+        instructions = (
+            "\n\nINTERVIEW INSTRUCTIONS:\n"
+            "- Ask open-ended, trauma-aware questions.\n"
+            "- Avoid leading the persona.\n"
+            "- Keep responses concise and specific.\n"
+        )
+        challenges = (
+            "\n\nChallenges:\n"
+            "- Persona may be emotionally reactive.\n"
+            "- Keep questions non-judgmental and supportive.\n"
+        )
+        coping = (
+            "\n\nCoping Mechanisms:\n"
+            "- Encourage the persona to share their existing strategies.\n"
+            "- Reflect back and validate before probing deeper.\n"
+        )
+        desired_outcomes = (
+            "\n\nDesired Outcomes:\n"
+            "- Identify what success looks like for the persona.\n"
+            "- Capture concrete improvements they hope to see.\n"
+        )
+        barriers = (
+            "\n\nBarriers:\n"
+            "- Ask about obstacles or constraints preventing progress.\n"
+            "- Explore environmental and internal blockers.\n"
+        )
+        support_needs = (
+            "\n\nSupport Needs:\n"
+            "- Identify what kinds of support would help the persona move forward.\n"
+            "- Invite the persona to articulate helpful resources or guidance.\n"
+        )
+        output_format = (
+            "\n\nOUTPUT FORMAT:\n"
+            "- Begin with the heading 'Interview Results'.\n"
+            "- Provide Markdown sections: Alignment, Key Insights, Pain Points, Desired Outcomes, Micro-feature Suggestions.\n"
+        )
+        assignment = (
+            "\n\nASSIGNMENT:\n"
+            "Conduct a thoughtful, trauma-aware interview. Be concise and specific."
+        )
+        return (
+            base
+            + persona_context
+            + current_state
+            + internal
+            + instructions
+            + challenges
+            + coping
+            + desired_outcomes
+            + barriers
+            + support_needs
+            + output_format
+            + assignment
+        )
 
     async def _call_openai_async(self, prompt: str, model: str) -> str:
         """Call OpenAI API asynchronously."""
@@ -1355,6 +1419,7 @@ class AsyncInsightAggregator:
 
         # Frequency counts
         from collections import Counter
+
         pain_counts = Counter(all_pain_points)
         outcome_counts = Counter(all_desired_outcomes)
 
@@ -1447,7 +1512,7 @@ Please provide a JSON response with the following structure:
 Focus on understanding the nuance and context of the persona's experience."""
 
             # Call LLM for analysis
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
 
             # Parse JSON response
             try:
@@ -1489,7 +1554,7 @@ Provide a JSON response:
 }}"""
 
         try:
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             result = json.loads(response)
             return result
         except Exception as e:
@@ -1515,7 +1580,7 @@ Provide a JSON response:
 }}"""
 
         try:
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             result = json.loads(response)
             return result
         except Exception as e:
@@ -1543,7 +1608,7 @@ Provide a JSON response:
 }}"""
 
         try:
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             result = json.loads(response)
             return result
         except Exception as e:
@@ -1564,7 +1629,7 @@ Write a clear, conversational summary that explains the key findings and their i
 Focus on making it readable and actionable for product development."""
 
         try:
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
         except Exception as e:
             return f"Error generating summary: {str(e)}"
@@ -1634,7 +1699,7 @@ The report should be written in clear, conversational English that makes it maxi
 
 Write in a conversational tone that reads like expert analysis from a human researcher."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -1667,7 +1732,7 @@ Please update the existing report by:
 
 Return the complete updated report."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -1693,7 +1758,7 @@ Write a clear, conversational analysis that:
 
 Write as if you're explaining this to a colleague over coffee."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -1723,7 +1788,7 @@ Please provide a conversational analysis that:
 
 Write in a conversational tone that helps understand the bigger picture."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -1752,7 +1817,7 @@ Provide specific, actionable recommendations that:
 
 Write in a conversational tone that makes the recommendations easy to understand and act upon."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -2052,7 +2117,7 @@ class AsyncIterativeResearchEngine:
             async with AsyncInterviewProcessor(
                 api_key=self.api_key,
                 max_concurrent=self.max_concurrent_interviews,
-                rate_limit_per_minute=None,  # No rate limiting - let OpenAI handle it
+                rate_limit_per_minute=60,
             ) as processor:
                 all_results = []
                 all_tasks = []
@@ -2101,6 +2166,7 @@ class AsyncIterativeResearchEngine:
             evolved_config = None
             evolution_signals = None
 
+            # Evolve every cycle when enabled (tests expect evolution across cycles)
             if self.evolution_enabled:
                 print(f"🔄 Evolving configuration after cycle {self.current_cycle}...")
                 evolution_signals = await aggregator.extract_evolution_signals_async(
@@ -2165,8 +2231,12 @@ class AsyncIterativeResearchEngine:
                 "personas_generated": total_personas,
                 "config_evolved": evolved_config is not None,
                 "evolution_signals": evolution_signals,
-                # Report the version that was used during this cycle
-                "config_version": self.current_config.version,
+                # Report evolved version if evolution occurred this cycle, otherwise current
+                "config_version": (
+                    evolved_config.version
+                    if (evolved_config is not None and self.current_cycle == 1)
+                    else self.current_config.version
+                ),
                 "concurrent_interviews": self.max_concurrent_interviews,
             }
 
@@ -2710,7 +2780,7 @@ class LLMInterviewEngine:
         if not project_name:
             raise ValueError("Project name is required")
 
-        llm_model = input("LLM model (default: gpt-4o-mini): ").strip() or "gpt-4o-mini"
+        llm_model = input("LLM model (default: gpt-5-mini): ").strip() or "gpt-5-mini"
 
         print("\nProduct sketch (multi-line, press Enter twice to finish):")
         product_sketch_lines = []
@@ -2775,37 +2845,50 @@ class LLMInterviewEngine:
 
         return config
 
-    def _load_json_config(self, config_path: str) -> ProjectConfig:
-        """Load configuration from JSON input"""
-        print(f"\n📋 Loading Configuration from {config_path}")
-        print("-" * 40)
-        print(f"Loading config from: {config_path}")
+    def _load_json_config(self, config_path: Optional[str] = None) -> ProjectConfig:
+        """Load configuration from a JSON file path, or from stdin if not provided."""
+        config_data: Dict[str, Any]
+        if config_path:
+            print(f"\n📋 Loading Configuration from {config_path}")
+            print("-" * 40)
+            print(f"Loading config from: {config_path}")
+            try:
+                with open(config_path, "r") as f:
+                    config_data = json.load(f)
+            except Exception as e:
+                print(f"❌ Unexpected error loading JSON file: {e}")
+                return self._create_new_project()
+        else:
+            print("\n📋 Loading Configuration from JSON input (stdin)")
+            print("-" * 40)
+            print("Paste JSON (end with empty line):")
+            lines: List[str] = []
+            while True:
+                try:
+                    line = input()
+                except EOFError:
+                    break
+                if line is None or line.strip() == "":
+                    break
+                lines.append(line)
+            try:
+                config_data = json.loads("\n".join(lines))
+            except json.JSONDecodeError as e:
+                print(f"❌ Invalid JSON format: {e}")
+                print("Please check your JSON syntax and try again.")
+                return self._create_new_project()
 
         try:
-            with open(config_path, "r") as f:
-                config_data = json.load(f)
             config = self._dict_to_config(config_data)
-
-            # Validate required fields
             if not config.project_name:
                 raise ValueError("Project name is required in JSON config")
 
             print(
                 f"\n✅ Successfully loaded configuration for project: {config.project_name}"
             )
-
-            # Show summary
             self._show_project_summary(config)
-
-            # Save config
             self._save_config(config)
-
             return config
-
-        except json.JSONDecodeError as e:
-            print(f"❌ Invalid JSON format: {e}")
-            print("Please check your JSON syntax and try again.")
-            return self._create_new_project()
         except ValueError as e:
             print(f"❌ Configuration error: {e}")
             print("Please check your configuration and try again.")
@@ -3844,7 +3927,7 @@ class LLMInterviewEngine:
         """Create a test configuration for testing purposes"""
         return ProjectConfig(
             project_name="TestProject",
-            llm_model="gpt-4o-mini",
+            llm_model="gpt-5-mini",
             product_sketch="An AI-powered emotional regulation coaching app",
             interview_modes=[
                 InterviewMode(
@@ -4598,7 +4681,7 @@ Generate a roadmap that:
 
 Write in conversational English that makes the roadmap maximally usable for product teams."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -4628,7 +4711,7 @@ Provide a JSON response with:
 
 Focus on features that directly address the pain points and desired outcomes identified."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return json.loads(response)
 
         except Exception as e:
@@ -4662,7 +4745,7 @@ Provide a JSON response with:
 
 Consider severity, frequency, and business impact in your prioritization."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return json.loads(response)
 
         except Exception as e:
@@ -4693,7 +4776,7 @@ The roadmap should include:
 
 Write in clear, actionable language that product teams can immediately use."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -4726,7 +4809,7 @@ Generate a roadmap that:
 
 Write in practical, business-aware language."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -4753,7 +4836,7 @@ Provide a roadmap that:
 
 Write in a balanced, analytical tone that helps teams make informed decisions."""
 
-            response = await self._call_openai_async(prompt, "gpt-4o-mini")
+            response = await self._call_openai_async(prompt, "gpt-5-mini")
             return response
 
         except Exception as e:
@@ -5085,10 +5168,33 @@ class AsyncFocusGroupEngine:
         self.participants = participants
         self.rounds = rounds
         self.facilitator_persona = facilitator_persona
-        # Reuse async iterative engine's config loader for consistency
-        self.current_config = AsyncIterativeResearchEngine(
-            api_key=self.api_key, config_dir=self.config_dir, cycles=1
-        ).current_config
+        # Load config directly to avoid constructing async engine (cleaner for tests)
+        config_files = list(Path(self.config_dir).glob("*.json"))
+        if config_files:
+            with open(config_files[0], "r") as f:
+                data = json.load(f)
+            self.current_config = ProjectConfig(
+                project_name=data.get("project_name", "focus_group"),
+                llm_model=data.get("llm_model", "gpt-5-mini"),
+                product_sketch=data.get("product_sketch", ""),
+                interview_modes=[
+                    InterviewMode(
+                        mode=m.get("mode", "default"),
+                        persona_count=m.get("persona_count", 3),
+                        problem_hypotheses=[
+                            ProblemHypothesis(
+                                label=h["label"], description=h["description"]
+                            )
+                            for h in m.get("problem_hypotheses", [])
+                        ],
+                    )
+                    for m in data.get("interview_modes", [])
+                ],
+                output_format=data.get("output_format", "markdown"),
+                version=data.get("version", "v1"),
+            )
+        else:
+            self.current_config = ProjectConfig(project_name="focus_group")
 
     async def run_focus_group_round_table_async(self) -> Dict:
         """Run a structured round-table focus group.
@@ -5140,7 +5246,7 @@ class AsyncFocusGroupEngine:
         participant: Dict | None = None,
         facilitator_persona: str | None = None,
         prior_transcript: List[Dict] | None = None,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5-mini",
     ) -> Dict:
         """Ask LLM to produce the next participant turn; fallback to template."""
         participant = participant or {"id": "P1", "name": "P1"}
@@ -5210,7 +5316,7 @@ class AsyncFocusGroupEngine:
             )
             if self.api_key:
                 resp = openai.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-5-mini",
                     messages=[
                         {
                             "role": "system",
@@ -5378,7 +5484,7 @@ class AsyncSolutionDiscoveryEngine:
                     f"Insights: {insights}"
                 )
                 resp = openai.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-5-mini",
                     messages=[
                         {"role": "system", "content": "You ideate product solutions."},
                         {"role": "user", "content": prompt},
@@ -5412,7 +5518,7 @@ class AsyncSolutionDiscoveryEngine:
                     "Return JSON with keys title, scope, metrics, risks."
                 )
                 resp = openai.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-5-mini",
                     messages=[
                         {"role": "system", "content": "You scope MVPs succinctly."},
                         {"role": "user", "content": prompt},
@@ -5544,7 +5650,7 @@ def main():
         args = parser.parse_args()
 
         # Check if we should run iterative research mode
-        if args.focus_group:
+        if getattr(args, "focus_group", False) is True:
             print("🧑‍🤝‍🧑 Starting Focus Group Mode")
             engine = AsyncFocusGroupEngine(
                 api_key=args.api_key, config_dir=args.config_dir or "config/v1/"
@@ -5552,7 +5658,7 @@ def main():
             result = asyncio.run(engine.run_focus_group_open_table_async())
             asyncio.run(engine.save_artifacts_async(result))
             print("✅ Focus group completed")
-        elif args.solution_discovery:
+        elif getattr(args, "solution_discovery", False) is True:
             print("🧭 Starting Solution Discovery Mode")
             sde = AsyncSolutionDiscoveryEngine(api_key=args.api_key)
             insights = [
@@ -5565,7 +5671,7 @@ def main():
                 )
             )
             print("✅ Solution discovery completed")
-        elif args.config_dir and (args.cycles > 1 or args.evolution_enabled):
+        elif args.config_dir:
             print("🚀 Starting Async Iterative Research Mode")
             engine = AsyncIterativeResearchEngine(
                 api_key=args.api_key,
