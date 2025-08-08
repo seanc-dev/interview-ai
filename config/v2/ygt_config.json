@@ -1,6 +1,6 @@
 {
   "project_name": "YGT",
-  "llm_model": "gpt-4o",
+  "llm_model": "gpt-5-mini",
   "output_format": "markdown",
   "version": "v2",
   "product_sketch": "YGT is an emotionally intelligent AI companion designed to support people across all stages of personal wellness — from burnout recovery to high-performance thriving. It adapts to the user's emotional state over time, offering a grounded sense of continuity across four evolving modes: Recovery, Stability, Growth, and Thriving. Rather than offering advice or productivity pressure, YGT provides a psychologically attuned daily rhythm: check-ins, reflections, soft nudges, and deep emotional validation. It helps users track their internal patterns, reconnect to their values, and build resilience at their own pace. Its tone is adaptive — gentle when needed, energized when invited. YGT is not a therapist or coach, but a compassionate guide that helps users stabilize, rebuild, and flourish — without shame, overwhelm, or toxic positivity.",
