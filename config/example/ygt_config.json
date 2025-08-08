@@ -1,0 +1,23 @@
+{
+  "project_name": "YGT Iteration Example",
+  "llm_model": "gpt-4o",
+  "product_sketch": "YGT is an emotionally intelligent AI companion that helps users manage overwhelm and set boundaries.",
+  "interview_modes": [
+    {
+      "mode": "recovery",
+      "persona_count": 2,
+      "problem_hypotheses": [
+        {
+          "label": "Overwhelm Regulation",
+          "description": "Users struggle to regulate overwhelm in high-stress situations"
+        },
+        {
+          "label": "Boundary Setting",
+          "description": "Users have difficulty setting and maintaining boundaries at work"
+        }
+      ]
+    }
+  ],
+  "output_format": "markdown",
+  "version": "v1"
+}

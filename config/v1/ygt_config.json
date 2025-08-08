@@ -1,0 +1,52 @@
+{
+  "project_name": "YGT",
+  "llm_model": "gpt-4",
+  "output_format": "markdown",
+  "product_sketch": "YGT is an emotionally intelligent AI companion that adapts to a user's mental and emotional state over time. It operates in four adaptive modes: Recovery, Stability, Growth, and Thriving. Each mode adjusts the assistant's tone, pacing, and types of support. YGT offers reflective prompts, daily check-ins, energy and mood pattern tracking, values-aligned nudges, and a sense of continuity via narrative memory. Its goal is to support users through burnout, help them stabilize, and guide them toward high-agency living — without triggering guilt, overwhelm, or shallow 'life hack' culture.",
+  "interview_modes": [
+    {
+      "mode": "Recovery",
+      "persona_count": 2,
+      "problem_hypotheses": [
+        {
+          "label": "Overwhelm Regulation",
+          "description": "People experiencing burnout or PTSD often struggle to regulate their emotional state in moments of overwhelm. We're testing whether a gentle, emotionally attuned AI assistant can help users co-regulate by offering validation, grounding, and safe next steps."
+        },
+        {
+          "label": "Trauma-Aware Productivity",
+          "description": "Many high-functioning trauma survivors want to stay productive, but traditional systems trigger shame or collapse. We're exploring whether a soft, non-judgmental assistant can help them structure their day without guilt or pressure."
+        }
+      ]
+    },
+    {
+      "mode": "Stability",
+      "persona_count": 2,
+      "problem_hypotheses": [
+        {
+          "label": "Energy Awareness and Boundary Support",
+          "description": "Users in recovery often regain stability but struggle to maintain energy boundaries. We're testing whether lightweight daily reflection and gentle nudging can help them build sustainable capacity without backsliding."
+        }
+      ]
+    },
+    {
+      "mode": "Growth",
+      "persona_count": 2,
+      "problem_hypotheses": [
+        {
+          "label": "Values-Based Growth Nudges",
+          "description": "Users ready to grow often lose traction when tools are too generic or push productivity over purpose. We're testing if a values-reflective companion can support intrinsic, sustainable growth."
+        }
+      ]
+    },
+    {
+      "mode": "Thriving",
+      "persona_count": 1,
+      "problem_hypotheses": [
+        {
+          "label": "Peak-State Reflection and Momentum",
+          "description": "Even high-performing users need intelligent reflection to maintain momentum. We're exploring whether a self-aware, hype-oriented AI can help them tune their energy and stay aligned with deeper goals."
+        }
+      ]
+    }
+  ]
+}

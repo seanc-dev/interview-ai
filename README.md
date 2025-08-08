@@ -10,6 +10,12 @@ A robust, interactive CLI tool for running LLM-to-LLM research interviews to eva
 - **Master Report Aggregation**: Cumulative analysis across runs with pattern detection
 - **Robust Error Handling**: Exponential backoff for API calls and graceful failure handling
 - **Flexible Output Formats**: Markdown and JSON output options
+- **Version-Aware Iterative Research**: Support for versioned configs, outputs, and design logs
+- **Design Log Evolution**: Automatic tracking of design decisions and insights across versions
+- **Product Resonance Analysis**: Quantitative assessment of product-market fit and alignment
+- **Iterative Research Cycles**: Automatic N-cycle research with product evolution
+- **Non-Deterministic Interviews**: Unique personas and indirect hypothesis testing
+- **Automatic Product Evolution**: AI-driven product sketch and hypothesis refinement
 
 ## Installation
 
@@ -36,7 +42,43 @@ export OPENAI_API_KEY="your-api-key-here"
 
 ### Quick Start
 
-Run the interview engine:
+#### Iterative Research Mode (Recommended)
+
+Run N cycles of research with automatic product evolution:
+
+```bash
+python llm_interview_engine.py --config-dir config/v1/ --cycles 3 --evolution-enabled
+```
+
+This will:
+
+1. Load `ygt_config.json` from the specified directory
+2. Run 3 interview cycles automatically
+3. Generate unique personas for each cycle
+4. Analyze insights to evolve product sketch and hypotheses
+5. Save outputs to `outputs/v1/ProjectName/run_<TIMESTAMP>/`
+6. Update design log with evolution history
+7. Add resonance analysis to master report
+
+#### Version-Aware Mode
+
+Run with a specific config directory:
+
+```bash
+python llm_interview_engine.py --config-dir config/v1/
+```
+
+This will:
+
+1. Load `ygt_config.json` from the specified directory
+2. Run interviews using the configuration
+3. Save outputs to `outputs/v1/ProjectName/run_<TIMESTAMP>/`
+4. Update design log in the config directory
+5. Add resonance analysis to master report
+
+#### Legacy Mode
+
+Run the interactive CLI:
 
 ```bash
 python llm_interview_engine.py
@@ -51,9 +93,64 @@ The CLI will guide you through:
 
 ### Project Structure
 
+#### Iterative Research Structure (Recommended)
+
+```
+config/
+├── v1/
+│   ├── ygt_config.json            # Version 1 configuration
+│   └── design_log.md              # Design evolution log
+├── v2/
+│   ├── ygt_config.json            # Version 2 configuration
+│   └── design_log.md              # Design evolution log
+└── ...
+
+outputs/
+├── v1/
+│   └── ProjectName/
+│       ├── master_report.md        # Cumulative analysis with resonance
+│       ├── roadmap.md              # Development roadmap
+│       ├── evolution_history.md    # Product evolution tracking
+│       └── run_YYYYMMDD_HHMMSS/   # Individual run results
+├── v2/
+│   └── ProjectName/
+│       ├── master_report.md
+│       ├── roadmap.md
+│       └── run_YYYYMMDD_HHMMSS/
+└── ...
+```
+
+#### Version-Aware Structure
+
+```
+config/
+├── v1/
+│   ├── ygt_config.json            # Version 1 configuration
+│   └── design_log.md              # Design evolution log
+├── v2/
+│   ├── ygt_config.json            # Version 2 configuration
+│   └── design_log.md              # Design evolution log
+└── ...
+
+outputs/
+├── v1/
+│   └── ProjectName/
+│       ├── master_report.md        # Cumulative analysis with resonance
+│       ├── roadmap.md              # Development roadmap
+│       └── run_YYYYMMDD_HHMMSS/   # Individual run results
+├── v2/
+│   └── ProjectName/
+│       ├── master_report.md
+│       ├── roadmap.md
+│       └── run_YYYYMMDD_HHMMSS/
+└── ...
+```
+
+#### Legacy Structure
+
 ```
 outputs/
-├── Project_Name/
+├── ProjectName/
 │   ├── config.json                 # Project configuration
 │   ├── master_report.md            # Cumulative analysis
 │   ├── persona_variant_1/
@@ -98,18 +195,46 @@ Each interview follows a three-phase structure:
 
 - Generates contrasting personas along demographic, emotional, and behavioral axes
 - Includes demographics, emotional baseline, internal conflicts, and coping patterns
+- **Non-deterministic**: Each cycle generates unique personas using cycle-based seeding
 
 #### Phase 2: Interview Simulation
 
 - 7-10 trauma-aware questions
 - Human-like responses with emotional nuance
 - Focus on lived experience and emotional triggers
+- **Indirect hypothesis testing**: Questions target underlying problems without revealing hypotheses
 
 #### Phase 3: Insight Synthesis
 
 - Structured analysis of pain points, desired outcomes, and language patterns
 - Solution fit assessment
 - Micro-feature suggestions
+- **Evolution signals**: Identifies opportunities for product improvement
+
+### Iterative Research Process
+
+The engine supports automatic iterative research with product evolution:
+
+#### 1. Cycle Execution
+
+- Run N interview cycles automatically
+- Generate unique personas per cycle
+- Conduct non-deterministic interviews
+- Collect and analyze insights
+
+#### 2. Product Evolution
+
+- Analyze insights for evolution signals
+- Generate new product sketches based on feedback
+- Create new hypotheses addressing identified gaps
+- Validate evolution quality
+
+#### 3. Evolution Tracking
+
+- Maintain evolution history across cycles
+- Track alignment improvements
+- Document design decisions
+- Generate evolution reports
 
 ### Master Report System
 
@@ -134,6 +259,21 @@ The master report (`master_report.md`) provides cumulative analysis across all r
 - Consensus success signals
 - Risk identification (e.g., misaligned readiness)
 
+#### Product Resonance Analysis (Version-Aware)
+
+- Overall alignment rates across personas
+- Mode-specific resonance metrics
+- Tone and hypothesis validation
+- Feature direction recommendations
+- Risk mitigation strategies
+
+#### Evolution Tracking (Iterative Research)
+
+- Cycle-by-cycle improvement metrics
+- Product sketch evolution history
+- Hypothesis refinement tracking
+- Convergence analysis
+
 #### Recommendations
 
 - Hypothesis prioritization with confidence estimates
@@ -146,7 +286,69 @@ The master report (`master_report.md`) provides cumulative analysis across all r
 - Incremental updates across runs
 - Evolution tracking of insights
 
+### Design Log System
+
+Each version maintains a design log (`design_log.md`) that tracks:
+
+#### Run Summaries
+
+- Timestamp and configuration details
+- Modes and persona counts executed
+- Hypotheses tested in each run
+
+#### Key Insights
+
+- Solution fit rates by hypothesis
+- Common pain points identified
+- Suggested micro-features
+- Emerging themes and patterns
+
+#### Product Evolution
+
+- Product sketch critiques
+- Recommendations for next version
+- Evolution rationale and decisions
+
+### Non-Deterministic Interview Features
+
+#### Unique Persona Generation
+
+- Cycle-based seeding ensures uniqueness
+- Diverse demographic and psychological profiles
+- Contrasting emotional and behavioral patterns
+
+#### Indirect Hypothesis Testing
+
+- Questions target underlying problems
+- Hypotheses hidden from personas
+- Natural conversation flow
+- Diverse question templates
+
+#### Interview Variety
+
+- Different questions per cycle
+- Varied emotional and challenge contexts
+- Randomized persona characteristics
+
 ### CLI Options
+
+#### Iterative Research Mode
+
+```bash
+python llm_interview_engine.py --config-dir config/v1/ --cycles 3 --evolution-enabled
+```
+
+#### Version-Aware Mode
+
+```bash
+python llm_interview_engine.py --config-dir config/v1/
+```
+
+#### Legacy Mode
+
+```bash
+python llm_interview_engine.py
+```
 
 #### New Project Creation
 
@@ -215,13 +417,20 @@ The engine includes robust error handling:
 - Graceful degradation on network issues
 - Input validation and config verification
 - Failure logging without batch abortion
+- Cycle failure recovery in iterative mode
 
 ## Development
 
 ### Running Tests
 
 ```bash
-pytest test_llm_interview_engine.py
+# Run all tests
+pytest
+
+# Run specific test categories
+pytest test_iterative_research_engine.py::TestIterativeResearchEngine
+pytest test_iterative_research_engine.py::TestProductEvolutionEngine
+pytest test_iterative_research_engine.py::TestNonDeterministicInterviewer
 ```
 
 ### Test Structure
@@ -229,6 +438,7 @@ pytest test_llm_interview_engine.py
 - Unit tests for core functionality
 - Integration tests for end-to-end workflows
 - Snapshot tests for output consistency
+- TDD approach with comprehensive coverage
 
 ## Contributing
 
@@ -236,6 +446,7 @@ pytest test_llm_interview_engine.py
 2. Add tests for new features
 3. Update documentation
 4. Ensure error handling coverage
+5. Maintain non-deterministic interview quality
 
 ## License
 
