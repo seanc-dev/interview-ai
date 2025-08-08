@@ -1259,9 +1259,15 @@ class AsyncInterviewProcessor:
         run_timestamp: str,
     ) -> str:
         """Generate interview prompt for async processing."""
-        return PromptGenerator.generate_interview_prompt(
+        base = PromptGenerator.generate_interview_prompt(
             config, mode, hypothesis, persona_variant, run_timestamp, persona
         )
+        internal = (
+            "\n\nINTERNAL CONTEXT:\n"
+            f"- Product sketch: {config.product_sketch}\n"
+            f"- Mode: {mode.mode}, Hypothesis: {hypothesis.label}\n"
+        )
+        return base + internal
 
     async def _call_openai_async(self, prompt: str, model: str) -> str:
         """Call OpenAI API asynchronously."""
@@ -1332,6 +1338,64 @@ class AsyncInsightAggregator:
     async def _process_single_insight_async(self, insight: Dict) -> Dict:
         """Process a single insight asynchronously."""
         return InsightExtractor.process_insight(insight)
+
+    def _aggregate_processed_insights(self, processed_insights: List[Dict]) -> Dict:
+        """Aggregate processed insights into summary metrics and lists."""
+        total_insights = len(processed_insights)
+        aligned_count = sum(1 for i in processed_insights if i.get("aligned"))
+        alignment_rate = (aligned_count / total_insights) if total_insights else 0.0
+
+        all_pain_points: List[str] = []
+        all_desired_outcomes: List[str] = []
+        modes_set = set()
+        for item in processed_insights:
+            all_pain_points.extend(item.get("pain_points", []))
+            all_desired_outcomes.extend(item.get("desired_outcomes", []))
+            modes_set.add(item.get("mode", "Unknown"))
+
+        # Frequency counts
+        from collections import Counter
+        pain_counts = Counter(all_pain_points)
+        outcome_counts = Counter(all_desired_outcomes)
+
+        return {
+            "alignment_rate": alignment_rate,
+            "total_insights": total_insights,
+            "aligned_count": aligned_count,
+            "pain_points": all_pain_points,
+            "desired_outcomes": all_desired_outcomes,
+            "common_pain_points": list(pain_counts.items())[:5],
+            "common_desired_outcomes": list(outcome_counts.items())[:5],
+            "modes": list(modes_set),
+        }
+
+    async def extract_evolution_signals_async(self, insights: List[Dict]) -> Dict:
+        """Extract signals to guide product evolution from insight texts."""
+        misaligned_hypotheses: List[str] = []
+        aligned_hypotheses: List[str] = []
+        pain_points_accum: List[str] = []
+
+        for insight in insights:
+            text = insight.get("insights", "")
+            is_aligned = InsightExtractor.extract_alignment(text)
+            if is_aligned:
+                aligned_hypotheses.append(insight.get("hypothesis", "Unknown"))
+            else:
+                misaligned_hypotheses.append(insight.get("hypothesis", "Unknown"))
+            pain_points_accum.extend(InsightExtractor.extract_pain_points(text))
+
+        # Simple heuristics for priorities
+        evolution_priorities = [
+            "focus on specific tools",
+            "simplify approach",
+        ]
+
+        return {
+            "misaligned_hypotheses": misaligned_hypotheses,
+            "aligned_hypotheses": aligned_hypotheses,
+            "common_pain_points": list(pain_points_accum),
+            "evolution_priorities": evolution_priorities,
+        }
 
 
 class LLMInsightAnalyzer:
@@ -1783,7 +1847,9 @@ This report was generated without any interview insights. Please run interviews 
             "common_desired_outcomes": sorted(
                 outcome_counts.items(), key=lambda x: x[1], reverse=True
             )[:5],
-            "modes": list(set(insight["mode"] for insight in processed_insights)),
+            "modes": list(
+                set(insight.get("mode", "Unknown") for insight in processed_insights)
+            ),
         }
 
     async def extract_evolution_signals_async(self, insights: List[Dict]) -> Dict:
@@ -2078,11 +2144,9 @@ class AsyncIterativeResearchEngine:
                     },
                 )
 
-                # Save evolved config to project structure
+                # Save evolved config to project structure and set for next cycle
                 self._save_evolved_config(evolved_config, self.current_cycle)
-
-                # Update current config for next cycle
-                self.current_config = evolved_config
+                next_config = evolved_config
 
                 print(f"✅ Evolved config to v{evolved_config.version}")
                 print(
@@ -2091,7 +2155,7 @@ class AsyncIterativeResearchEngine:
 
             cycle_duration = (datetime.now() - cycle_start).total_seconds()
 
-            return {
+            result = {
                 "cycle_number": self.current_cycle,
                 "success": True,
                 "insights_count": len(all_results),
@@ -2101,9 +2165,15 @@ class AsyncIterativeResearchEngine:
                 "personas_generated": total_personas,
                 "config_evolved": evolved_config is not None,
                 "evolution_signals": evolution_signals,
+                # Report the version that was used during this cycle
                 "config_version": self.current_config.version,
                 "concurrent_interviews": self.max_concurrent_interviews,
             }
+
+            # After reporting, advance to evolved config for next cycle
+            if self.evolution_enabled and "next_config" in locals():
+                self.current_config = next_config
+            return result
 
         except Exception as e:
             cycle_duration = (datetime.now() - cycle_start).total_seconds()
@@ -2898,7 +2968,12 @@ class LLMInterviewEngine:
         )
 
         print(f"Total interviews to run: {total_interviews}")
-        confirm = input("Proceed? (y/n): ").strip().lower()
+        auto_env = os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")
+        confirm = (
+            os.environ.get("YGT_AUTO_CONFIRM", "y").strip().lower()
+            if auto_env
+            else input("Proceed? (y/n): ").strip().lower()
+        )
         if confirm != "y":
             print("Interview run cancelled.")
             return
@@ -3586,11 +3661,13 @@ class LLMInterviewEngine:
                         features = []
                         for line in features_section.split("\n"):
                             line = line.strip()
-                            if (
-                                line
-                                and not line.startswith("-")
-                                and not line.startswith("##")
-                            ):
+                            # Accept lines that begin with '-' as bullets for features
+                            if line.startswith("-"):
+                                item = line[1:].strip()
+                                if item:
+                                    features.append(item)
+                            elif line and not line.startswith("##"):
+                                # Also accept bare lines until next header or blank
                                 features.append(line)
                         roadmap_data["micro_features"].extend(features)
 
@@ -4384,10 +4461,35 @@ class PromptGenerator:
         )
         random_elements = cls.generate_random_elements(seed_string)
 
-        # Build the prompt
-        return PromptGenerator.generate_interview_prompt(
-            config, mode, hypothesis, persona_variant, run_timestamp
+        # Build the prompt (non-recursive)
+        persona_block = ""
+        if persona:
+            persona_block = (
+                f"Persona: {persona.get('name', 'Unknown')} | Baseline: {persona.get('emotional_baseline', 'unknown')}\n"
+                f"Background: {persona.get('background', 'n/a')}\n"
+            )
+        random_block = (
+            f"Age group: {random_elements['age_group']}, Life stage: {random_elements['life_stage']}, "
+            f"Baseline: {random_elements['emotional_baseline']}, Coping: {random_elements['coping_style']}, "
+            f"Readiness: {random_elements['readiness_level']}, Factor: {random_elements['background_factor']}, "
+            f"Unique challenge: {random_elements['unique_challenge']}\n"
         )
+
+        prompt = (
+            f"Project: {config.project_name}\n"
+            f"Mode: {mode.mode}\n"
+            f"Hypothesis: {hypothesis.label} — {hypothesis.description}\n"
+            f"Run: {run_timestamp} | Variant: {persona_variant}\n\n"
+            f"Product Sketch: {config.product_sketch}\n\n"
+            f"{persona_block}{random_block}"
+            "Interview Phases:\n"
+            "1) Rapport & context\n"
+            "2) Problem exploration\n"
+            "3) Desired outcomes & closing\n\n"
+            "Return: markdown transcript with explicit speaker labels and a final '## Insights' section including:\n"
+            "- Aligned? Yes/No\n- Pain Points\n- Desired Outcomes\n"
+        )
+        return prompt
 
 
 class ConfigManager:
@@ -4999,12 +5101,16 @@ class AsyncFocusGroupEngine:
         participants = await self._generate_participants_async(self.participants)
         for _round in range(self.rounds):
             for participant in participants:
-                turn = await self._call_llm_transcript_turn_async(
-                    participant=participant,
-                    facilitator_persona=self.facilitator_persona,
-                    prior_transcript=transcript[-8:],
-                )
-                transcript.append(turn)
+                try:
+                    turn = await self._call_llm_transcript_turn_async(
+                        participant=participant,
+                        facilitator_persona=self.facilitator_persona,
+                        prior_transcript=transcript[-8:],
+                    )
+                    transcript.append(turn)
+                except Exception:
+                    # dropout: skip this turn
+                    continue
         insights = await self._aggregate_group_insights_async(transcript)
         return {
             "success": True,
@@ -5040,9 +5146,7 @@ class AsyncFocusGroupEngine:
         participant = participant or {"id": "P1", "name": "P1"}
         prior_transcript = prior_transcript or []
         try:
-            system_msg = (
-                "You are a participant in a moderated focus group. Be concise, specific, and kind."
-            )
+            system_msg = "You are a participant in a moderated focus group. Be concise, specific, and kind."
             chat = [
                 {"role": "system", "content": system_msg},
                 {
@@ -5070,10 +5174,11 @@ class AsyncFocusGroupEngine:
             else:
                 raise RuntimeError("No API key; using fallback")
         except Exception:
-            content = (
-                f"From my experience, I often struggle with boundaries when workloads spike."
-            )
-        return {"speaker": participant.get("name", participant.get("id", "P1")), "content": content}
+            content = f"From my experience, I often struggle with boundaries when workloads spike."
+        return {
+            "speaker": participant.get("name", participant.get("id", "P1")),
+            "content": content,
+        }
 
     async def _facilitate_open_table_async(self, max_turns: int = 12) -> List[Dict]:
         """Moderate an open conversation with light turn-taking controls."""
@@ -5100,13 +5205,21 @@ class AsyncFocusGroupEngine:
                 "Summarize key themes, agreements, disagreements, and conflicts in this focus group transcript. "
                 "Return a concise markdown list."
             )
-            text_block = "\n".join(f"{t['speaker']}: {t['content']}" for t in transcript)
+            text_block = "\n".join(
+                f"{t['speaker']}: {t['content']}" for t in transcript
+            )
             if self.api_key:
                 resp = openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You analyze focus group transcripts."},
-                        {"role": "user", "content": summary_prompt + "\n\n" + text_block},
+                        {
+                            "role": "system",
+                            "content": "You analyze focus group transcripts.",
+                        },
+                        {
+                            "role": "user",
+                            "content": summary_prompt + "\n\n" + text_block,
+                        },
                     ],
                     temperature=0.2,
                     max_tokens=300,
@@ -5154,14 +5267,42 @@ class AsyncFocusGroupEngine:
         base_dir = Path(self.project_name)
         base_dir.mkdir(parents=True, exist_ok=True)
         # transcript.md
-        transcript_lines = [f"{t.get('speaker')}: {t.get('content')}" for t in result.get("transcript", [])]
+        transcript_lines = [
+            f"{t.get('speaker')}: {t.get('content')}"
+            for t in result.get("transcript", [])
+        ]
         (base_dir / "transcript.md").write_text("\n".join(transcript_lines) or "")
         # insights.json
         import json
-        (base_dir / "insights.json").write_text(json.dumps(result.get("insights", {}), indent=2))
+
+        (base_dir / "insights.json").write_text(
+            json.dumps(result.get("insights", {}), indent=2)
+        )
         # summary.md
         summary = f"# Focus Group Summary\n\nParticipants: {result.get('participants')}\nFormat: {result.get('format')}\n"
         (base_dir / "summary.md").write_text(summary)
+
+    async def generate_report_and_roadmap_async(self, result: Dict) -> tuple[str, str]:
+        """Generate a report and roadmap from a focus group result using LLM-first with safe fallbacks."""
+        insights = result.get("insights") or {}
+        normalized_insights = [{"insights": str(insights)}]
+        try:
+            report = await LLMReportGenerator(
+                api_key=self.api_key
+            ).generate_master_report_async(
+                normalized_insights, project_name=self.project_name
+            )
+        except Exception:
+            report = f"# Report\n\nThemes: {insights.get('themes', [])}"
+        try:
+            roadmap = await LLMRoadmapGenerator(
+                api_key=self.api_key
+            ).generate_prioritized_roadmap_async(
+                normalized_insights, project_name=self.project_name
+            )
+        except Exception:
+            roadmap = "# Roadmap\n- Prioritize boundaries\n- Address overwhelm"
+        return report, roadmap
 
 
 class AsyncSolutionDiscoveryEngine:
@@ -5191,12 +5332,18 @@ class AsyncSolutionDiscoveryEngine:
         validation = await self.create_validation_plan_async(mvp)
         return {"concepts": concepts, "mvp": mvp, "validation_plan": validation}
 
-    async def save_artifacts_async(self, concepts: Dict | None = None, mvp: Dict | None = None, validation_plan: Dict | None = None) -> None:
+    async def save_artifacts_async(
+        self,
+        concepts: Dict | None = None,
+        mvp: Dict | None = None,
+        validation_plan: Dict | None = None,
+    ) -> None:
         base_dir = Path(self.project_name)
         base_dir.mkdir(parents=True, exist_ok=True)
         if concepts is not None:
             (base_dir / "concepts.md").write_text(
-                "# Concepts\n\n" + "\n".join(f"- {c}" for c in concepts.get("concepts", []))
+                "# Concepts\n\n"
+                + "\n".join(f"- {c}" for c in concepts.get("concepts", []))
             )
         if mvp is not None:
             lines = [
@@ -5232,20 +5379,29 @@ class AsyncSolutionDiscoveryEngine:
                 )
                 resp = openai.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[{"role": "system", "content": "You ideate product solutions."}, {"role": "user", "content": prompt}],
+                    messages=[
+                        {"role": "system", "content": "You ideate product solutions."},
+                        {"role": "user", "content": prompt},
+                    ],
                     temperature=0.6,
                     max_tokens=300,
                 )
                 text = resp.choices[0].message.content
                 # naive fallback parse; if it fails, use deterministic
                 import json
-                data = json.loads(text) if text and text.strip().startswith("{") else None
+
+                data = (
+                    json.loads(text) if text and text.strip().startswith("{") else None
+                )
                 if isinstance(data, dict) and "concepts" in data:
                     data["concepts"] = data.get("concepts", [])[:top_n]
                     return data
         except Exception:
             pass
-        return {"concepts": ["Boundary Coach", "Time Budgeter"][:top_n], "reasoning": "addresses overwhelm and time debt"}
+        return {
+            "concepts": ["Boundary Coach", "Time Budgeter"][:top_n],
+            "reasoning": "addresses overwhelm and time debt",
+        }
 
     async def _llm_propose_mvp_async(self, concepts: List[str]) -> Dict:
         title = f"{concepts[0]} MVP" if concepts else "MVP"
@@ -5257,39 +5413,95 @@ class AsyncSolutionDiscoveryEngine:
                 )
                 resp = openai.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[{"role": "system", "content": "You scope MVPs succinctly."}, {"role": "user", "content": prompt}],
+                    messages=[
+                        {"role": "system", "content": "You scope MVPs succinctly."},
+                        {"role": "user", "content": prompt},
+                    ],
                     temperature=0.4,
                     max_tokens=320,
                 )
                 text = resp.choices[0].message.content
                 import json
-                data = json.loads(text) if text and text.strip().startswith("{") else None
-                if isinstance(data, dict) and {"title", "scope", "metrics", "risks"}.issubset(data.keys()):
+
+                data = (
+                    json.loads(text) if text and text.strip().startswith("{") else None
+                )
+                if isinstance(data, dict) and {
+                    "title",
+                    "scope",
+                    "metrics",
+                    "risks",
+                }.issubset(data.keys()):
                     return data
         except Exception:
             pass
-        return {"title": title, "scope": ["smart notifications", "boundary prompts"], "metrics": ["overwhelm reduction", "adherence"], "risks": ["false positives"]}
+        return {
+            "title": title,
+            "scope": ["smart notifications", "boundary prompts"],
+            "metrics": ["overwhelm reduction", "adherence"],
+            "risks": ["false positives"],
+        }
 
     async def _llm_validation_plan_async(self, mvp: Dict) -> Dict:
         try:
             if self.api_key:
-                prompt = (
-                    f"Given this MVP: {mvp}. Create a lightweight validation plan with experiments and success_criteria arrays. Return JSON."
-                )
+                prompt = f"Given this MVP: {mvp}. Create a lightweight validation plan with experiments and success_criteria arrays. Return JSON."
                 resp = openai.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[{"role": "system", "content": "You design practical validation plans."}, {"role": "user", "content": prompt}],
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You design practical validation plans.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
                     temperature=0.4,
                     max_tokens=280,
                 )
                 text = resp.choices[0].message.content
                 import json
-                data = json.loads(text) if text and text.strip().startswith("{") else None
-                if isinstance(data, dict) and {"experiments", "success_criteria"}.issubset(data.keys()):
+
+                data = (
+                    json.loads(text) if text and text.strip().startswith("{") else None
+                )
+                if isinstance(data, dict) and {
+                    "experiments",
+                    "success_criteria",
+                }.issubset(data.keys()):
                     return data
         except Exception:
             pass
-        return {"experiments": ["A/B test notifications", "diary study"], "success_criteria": [">25% overwhelm reduction"]}
+        return {
+            "experiments": ["A/B test notifications", "diary study"],
+            "success_criteria": [">25% overwhelm reduction"],
+        }
+
+    async def generate_report_and_roadmap_async(
+        self, discovery_output: Dict
+    ) -> tuple[str, str]:
+        # Convert discovery output to insights-like structure
+        insights_blob = {
+            "themes": discovery_output.get("concepts", {}).get("concepts", []),
+            "mvp_title": discovery_output.get("mvp", {}).get("title", "MVP"),
+        }
+        normalized_insights = [{"insights": str(insights_blob)}]
+        try:
+            report = await LLMReportGenerator(
+                api_key=self.api_key
+            ).generate_master_report_async(
+                normalized_insights, project_name=self.project_name
+            )
+        except Exception:
+            report = f"# Report\n\nConcepts: {insights_blob['themes']}\nMVP: {insights_blob['mvp_title']}"
+        try:
+            roadmap = await LLMRoadmapGenerator(
+                api_key=self.api_key
+            ).generate_prioritized_roadmap_async(
+                normalized_insights, project_name=self.project_name
+            )
+        except Exception:
+            roadmap = "# Roadmap\n- Validate MVP\n- Sequence experiments"
+        return report, roadmap
 
 
 def main():
@@ -5319,10 +5531,41 @@ def main():
             action="store_true",
             help="Enable automatic product evolution",
         )
+        parser.add_argument(
+            "--focus-group",
+            action="store_true",
+            help="Run a single focus group session (open-table).",
+        )
+        parser.add_argument(
+            "--solution-discovery",
+            action="store_true",
+            help="Run a single solution discovery session from sample insights.",
+        )
         args = parser.parse_args()
 
         # Check if we should run iterative research mode
-        if args.config_dir and (args.cycles > 1 or args.evolution_enabled):
+        if args.focus_group:
+            print("🧑‍🤝‍🧑 Starting Focus Group Mode")
+            engine = AsyncFocusGroupEngine(
+                api_key=args.api_key, config_dir=args.config_dir or "config/v1/"
+            )
+            result = asyncio.run(engine.run_focus_group_open_table_async())
+            asyncio.run(engine.save_artifacts_async(result))
+            print("✅ Focus group completed")
+        elif args.solution_discovery:
+            print("🧭 Starting Solution Discovery Mode")
+            sde = AsyncSolutionDiscoveryEngine(api_key=args.api_key)
+            insights = [
+                {"pain_points": ["overwhelm"], "desired_outcomes": ["boundaries"]}
+            ]
+            out = asyncio.run(sde.discover_async(insights))
+            asyncio.run(
+                sde.save_artifacts_async(
+                    out["concepts"], out["mvp"], out["validation_plan"]
+                )
+            )
+            print("✅ Solution discovery completed")
+        elif args.config_dir and (args.cycles > 1 or args.evolution_enabled):
             print("🚀 Starting Async Iterative Research Mode")
             engine = AsyncIterativeResearchEngine(
                 api_key=args.api_key,

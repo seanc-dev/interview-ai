@@ -1,6 +1,6 @@
 {
   "project_name": "YGT",
-  "llm_model": "gpt-4",
+  "llm_model": "gpt-4o-mini",
   "output_format": "markdown",
   "product_sketch": "YGT is an emotionally intelligent AI companion that adapts to a user's mental and emotional state over time. It operates in four adaptive modes: Recovery, Stability, Growth, and Thriving. Each mode adjusts the assistant's tone, pacing, and types of support. YGT offers reflective prompts, daily check-ins, energy and mood pattern tracking, values-aligned nudges, and a sense of continuity via narrative memory. Its goal is to support users through burnout, help them stabilize, and guide them toward high-agency living — without triggering guilt, overwhelm, or shallow 'life hack' culture.",
   "interview_modes": [

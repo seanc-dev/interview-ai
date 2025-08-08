@@ -76,6 +76,34 @@ class TestSolutionDiscoveryMode:
             assert "experiments" in plan and len(plan["experiments"]) > 0
 
             await engine.save_artifacts_async(
-                concepts={"concepts": ["Boundary Coach"]}, mvp={"title": "Boundary Coach MVP"}, validation_plan=plan
+                concepts={"concepts": ["Boundary Coach"]},
+                mvp={"title": "Boundary Coach MVP"},
+                validation_plan=plan,
             )
             assert (tmp_path / "sd_validate" / "validation_plan.md").exists()
+
+    @pytest.mark.asyncio
+    async def test_discover_end_to_end_snapshot(self, tmp_path: Path):
+        engine = AsyncSolutionDiscoveryEngine(
+            api_key="test_key", project_name=str(tmp_path / "sd_e2e")
+        )
+        insights = [{"pain_points": ["overwhelm"], "desired_outcomes": ["boundaries"]}]
+        out = await engine.discover_async(insights, top_n=2)
+        await engine.save_artifacts_async(
+            out["concepts"], out["mvp"], out["validation_plan"]
+        )
+        mvp_text = (tmp_path / "sd_e2e" / "mvp_proposal.md").read_text()
+        assert mvp_text.splitlines()[0].startswith("# ")
+        concepts_text = (tmp_path / "sd_e2e" / "concepts.md").read_text()
+        assert concepts_text.startswith("# Concepts")
+
+    @pytest.mark.asyncio
+    async def test_generate_report_and_roadmap_from_discovery(self):
+        engine = AsyncSolutionDiscoveryEngine(
+            api_key="test_key", project_name="sd_report"
+        )
+        insights = [{"pain_points": ["overwhelm"], "desired_outcomes": ["boundaries"]}]
+        out = await engine.discover_async(insights, top_n=2)
+        report, roadmap = await engine.generate_report_and_roadmap_async(out)
+        assert isinstance(report, str) and len(report) > 0
+        assert isinstance(roadmap, str) and len(roadmap) > 0
