@@ -1173,6 +1173,7 @@ class AsyncInterviewProcessor:
 
         async with semaphore_context:
             async with rate_limit_context:
+                started_at = datetime.now()
                 try:
                     # Generate interview prompt
                     prompt = self._generate_interview_prompt_async(
@@ -1193,6 +1194,7 @@ class AsyncInterviewProcessor:
                     else:
                         result = self._parse_json_response(response)
 
+                    finished_at = datetime.now()
                     return {
                         "success": True,
                         "mode": mode.mode,
@@ -1201,15 +1203,28 @@ class AsyncInterviewProcessor:
                         "insights": result.get("insights", ""),
                         "persona": result.get("persona", ""),
                         "interview_transcript": result.get("interview_transcript", ""),
+                        "metrics": {
+                            "started_at": started_at.isoformat(),
+                            "finished_at": finished_at.isoformat(),
+                            "duration_s": (finished_at - started_at).total_seconds(),
+                            "model": config.llm_model,
+                        },
                     }
 
                 except Exception as e:
+                    finished_at = datetime.now()
                     return {
                         "success": False,
                         "error": str(e),
                         "mode": mode.mode,
                         "hypothesis": hypothesis.label,
                         "persona_variant": persona_variant,
+                        "metrics": {
+                            "started_at": started_at.isoformat(),
+                            "finished_at": finished_at.isoformat(),
+                            "duration_s": (finished_at - started_at).total_seconds(),
+                            "model": config.llm_model,
+                        },
                     }
 
     async def process_interviews_concurrently(
@@ -1980,9 +1995,9 @@ class AsyncIterativeResearchEngine:
         self.runs_dir = self.project_dir / "runs"
 
         # Create directories
-        self.project_dir.mkdir(exist_ok=True)
-        self.config_dir_path.mkdir(exist_ok=True)
-        self.runs_dir.mkdir(exist_ok=True)
+        self.project_dir.mkdir(parents=True, exist_ok=True)
+        self.config_dir_path.mkdir(parents=True, exist_ok=True)
+        self.runs_dir.mkdir(parents=True, exist_ok=True)
 
     def _load_current_config(self) -> ProjectConfig:
         """Load the current configuration from the config directory."""
@@ -2302,6 +2317,39 @@ class AsyncIterativeResearchEngine:
 
         # Generate master report and roadmap
         await self._generate_master_report_and_roadmap(results, run_dir)
+
+        # Save JSON metrics for the run
+        try:
+            metrics = {
+                "project": self.project_name,
+                "run_timestamp": run_timestamp,
+                "cycles": [
+                    {
+                        "cycle_number": r.get("cycle_number"),
+                        "success": r.get("success"),
+                        "alignment_rate": r.get("alignment_rate"),
+                        "duration": r.get("duration"),
+                        "personas_generated": r.get("personas_generated"),
+                        "config_evolved": r.get("config_evolved"),
+                        "config_version": r.get("config_version"),
+                        "interviews": [
+                            {
+                                k: v
+                                for k, v in insight.items()
+                                if k in {"success", "mode", "hypothesis", "persona_variant", "metrics"}
+                            }
+                            for insight in r.get("all_insights", [])
+                        ],
+                    }
+                    for r in results
+                ],
+            }
+            import json as _json
+
+            with open(run_dir / "metrics.json", "w") as mf:
+                _json.dump(metrics, mf, indent=2)
+        except Exception as _:
+            pass
 
         # Print final summary
         self._print_final_summary(results)
