@@ -1189,7 +1189,9 @@ class AsyncInterviewProcessor:
                     )
 
                     # Call OpenAI API asynchronously
-                    response = await self._call_openai_async(prompt, config.llm_model)
+                    response = await self._call_openai_async(
+                        prompt, config.llm_model, config
+                    )
 
                     # Parse response
                     if config.output_format == "markdown":
@@ -1351,7 +1353,9 @@ class AsyncInterviewProcessor:
             + assignment
         )
 
-    async def _call_openai_async(self, prompt: str, model: str) -> str:
+    async def _call_openai_async(
+        self, prompt: str, model: str, config: ProjectConfig = None
+    ) -> str:
         """Call OpenAI API asynchronously."""
         if not self.session:
             raise RuntimeError("Session not initialized. Use async context manager.")
@@ -1364,19 +1368,26 @@ class AsyncInterviewProcessor:
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": getattr(
-                getattr(self, "current_config", None), "max_tokens", 2000
-            ),
-            "temperature": getattr(
-                getattr(self, "current_config", None), "temperature", 0.7
-            ),
         }
+
+        # Handle different parameter names and constraints for different models
+        if "gpt-5" in model:
+            # GPT-5 models use max_completion_tokens and only support default temperature
+            data["max_completion_tokens"] = (
+                getattr(config, "max_tokens", 2000) if config else 2000
+            )
+            # GPT-5 models don't support custom temperature - only use default
+        else:
+            # Older models use max_tokens and support custom temperature
+            data["max_tokens"] = getattr(config, "max_tokens", 2000) if config else 2000
+            data["temperature"] = getattr(config, "temperature", 0.7) if config else 0.7
 
         async with self.session.post(
             "https://api.openai.com/v1/chat/completions", headers=headers, json=data
         ) as response:
             if response.status == 200:
                 result = await response.json()
+
                 # Optional JSONL logging for request/response
                 try:
                     cfg = getattr(self, "current_config", None)
@@ -1398,6 +1409,7 @@ class AsyncInterviewProcessor:
                             )
                 except Exception:
                     pass
+
                 return result["choices"][0]["message"]["content"]
             else:
                 error_text = await response.text()
@@ -1435,12 +1447,57 @@ class AsyncInsightAggregator:
 
     async def aggregate_insights_async(self, insights: List[Dict]) -> Dict:
         """Aggregate insights asynchronously."""
-        # Process insights concurrently
-        tasks = [self._process_single_insight_async(insight) for insight in insights]
+        # Filter out failed interviews - only process successful ones with actual content
+        successful_insights = [
+            insight
+            for insight in insights
+            if insight.get("success", True) and insight.get("insights", "").strip()
+        ]
+
+        failed_insights = [
+            insight
+            for insight in insights
+            if not insight.get("success", True)
+            or not insight.get("insights", "").strip()
+        ]
+
+        print(
+            f"📊 Processing {len(successful_insights)} successful insights, {len(failed_insights)} failed interviews"
+        )
+
+        if not successful_insights:
+            print("⚠️  No successful insights to process - returning empty aggregation")
+            return {
+                "alignment_rate": 0.0,
+                "total_insights": 0,
+                "aligned_count": 0,
+                "pain_points": [],
+                "desired_outcomes": [],
+                "common_pain_points": [],
+                "common_desired_outcomes": [],
+                "modes": [],
+                "failed_interviews": len(failed_insights),
+                "failure_reasons": [
+                    insight.get("error", "Unknown error") for insight in failed_insights
+                ],
+            }
+
+        # Process successful insights concurrently
+        tasks = [
+            self._process_single_insight_async(insight)
+            for insight in successful_insights
+        ]
         processed_insights = await asyncio.gather(*tasks)
 
         # Aggregate results
-        return self._aggregate_processed_insights(processed_insights)
+        result = self._aggregate_processed_insights(processed_insights)
+        result["failed_interviews"] = len(failed_insights)
+        if failed_insights:
+            result["failure_reasons"] = [
+                insight.get("error", "Unknown error") for insight in failed_insights
+            ]
+
+        return result
 
     async def _process_single_insight_async(self, insight: Dict) -> Dict:
         """Process a single insight asynchronously."""
@@ -5575,7 +5632,9 @@ class AsyncFocusGroupEngine:
         try:
             # Prefer existing persona generator if available
             generator = AsyncPersonaGenerator(api_key=self.api_key)
-            personas = await generator.generate_personas_async(count=count)
+            personas = await generator.generate_personas_async(
+                count=count, cycle_number=1
+            )
             # Normalize to simple dicts
             participants: List[Dict] = []
             for idx, p in enumerate(personas, start=1):

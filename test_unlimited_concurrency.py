@@ -208,20 +208,23 @@ The persona expressed feeling overwhelmed by daily stressors.
             engine.config_dir_path.mkdir(exist_ok=True)
             engine.runs_dir.mkdir(exist_ok=True)
 
+            # Patch the _call_openai_async method on the instance that gets created
             with patch.object(
                 AsyncInterviewProcessor,
                 "_call_openai_async",
                 side_effect=mock_api_call_with_rate_limit,
-            ):
+            ) as mock_api:
                 start_time = time.time()
                 results = await engine.run_iterative_research_async()
                 duration = time.time() - start_time
 
-            print(f"Rate limit test completed in {duration:.2f}s")
-            print(f"Total API calls made: {call_count}")
+                print(f"Rate limit test completed in {duration:.2f}s")
+                print(f"Total API calls made: {call_count}")
+                print(f"Mock API was called {mock_api.call_count} times")
 
-            assert len(results) == 1
-            assert call_count > 0
+                assert len(results) == 1
+                # Check that the mock was actually called
+                assert mock_api.call_count > 0
 
     async def test_massive_concurrency_test(self, test_config):
         """Test with a very large number of concurrent interviews."""
