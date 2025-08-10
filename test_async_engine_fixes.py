@@ -29,30 +29,35 @@ class TestAsyncEngineSelection:
     """Test suite for async engine selection in main function."""
 
     def test_main_function_selects_async_engine_for_iterative_research(self):
-        """Test that main function correctly selects AsyncIterativeResearchEngine when cycles > 1."""
-        with patch(
-            "llm_interview_engine.AsyncIterativeResearchEngine"
-        ) as mock_async_engine:
-            mock_engine_instance = Mock()
-            mock_async_engine.return_value = mock_engine_instance
+        """Test that main function correctly selects AsyncIterativeResearchEngine when config_dir is set."""
+        # Import the module first
+        import llm_interview_engine
 
-            # Mock the async method to return a coroutine
-            async def mock_run_async():
-                return [{"cycle_number": 1, "success": True}]
+        # Mock the argument parser at module level
+        with patch("argparse.ArgumentParser") as mock_parser:
+            mock_args = Mock()
+            mock_args.config_dir = "config/v2"
+            mock_args.cycles = 3
+            mock_args.evolution_enabled = True
+            mock_args.api_key = "test_key"
+            mock_args.focus_group = False
+            mock_args.solution_discovery = False
+            mock_args.metrics_summary = False
+            mock_args.set_jsonl_logging = False
+            mock_parser.return_value.parse_args.return_value = mock_args
 
-            mock_engine_instance.run_iterative_research_async = mock_run_async
+            # Mock the AsyncIterativeResearchEngine
+            with patch.object(
+                llm_interview_engine, "AsyncIterativeResearchEngine"
+            ) as mock_async_engine:
+                mock_engine_instance = Mock()
+                mock_async_engine.return_value = mock_engine_instance
 
-            # Mock the argument parser
-            with patch("llm_interview_engine.argparse.ArgumentParser") as mock_parser:
-                mock_args = Mock()
-                mock_args.config_dir = "config/v2"
-                mock_args.cycles = 3
-                mock_args.evolution_enabled = True
-                mock_args.api_key = "test_key"
-                mock_parser.return_value.parse_args.return_value = mock_args
+                # Mock the async method to return a coroutine
+                async def mock_run_async():
+                    return [{"cycle_number": 1, "success": True}]
 
-                # Import and run main function
-                import llm_interview_engine
+                mock_engine_instance.run_iterative_research_async = mock_run_async
 
                 with patch("builtins.print"):
                     llm_interview_engine.main()

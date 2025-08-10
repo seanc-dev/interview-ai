@@ -1,0 +1,65 @@
+{
+  "project_name": "AI Mental Health Coach",
+  "llm_model": "gpt-5-mini",
+  "output_format": "markdown",
+  "version": "v1",
+  "product_sketch": "An AI-powered mental health coaching application that provides personalized emotional support, cognitive behavioral therapy techniques, and wellness guidance. The app adapts to individual user needs, offering evidence-based interventions, mood tracking, and progress monitoring. It serves as a bridge between therapy sessions and daily life, helping users develop healthy coping mechanisms, emotional regulation skills, and resilience. The AI coach maintains appropriate boundaries, recognizes crisis situations, and provides resources for professional help when needed.",
+  "interview_modes": [
+    {
+      "mode": "Anxiety Management",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Chronic Anxiety and Overthinking",
+          "description": "Users struggle with persistent worry, racing thoughts, and difficulty managing anxiety symptoms. They need tools for grounding, breathing exercises, and cognitive reframing to break negative thought patterns."
+        },
+        {
+          "label": "Social Anxiety and Performance Pressure",
+          "description": "Users experience intense anxiety in social situations, work presentations, or performance contexts. They need confidence-building techniques, exposure therapy approaches, and stress management strategies."
+        }
+      ]
+    },
+    {
+      "mode": "Depression Support",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Low Energy and Motivation",
+          "description": "Users struggle with persistent low mood, lack of energy, and difficulty maintaining daily routines. They need gentle encouragement, activity scheduling, and mood-lifting techniques."
+        },
+        {
+          "label": "Isolation and Social Withdrawal",
+          "description": "Users tend to isolate themselves, cancel plans, and avoid social interactions. They need connection-building strategies, gradual exposure to social activities, and support for maintaining relationships."
+        }
+      ]
+    },
+    {
+      "mode": "Stress and Burnout",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Work-Life Balance and Boundary Setting",
+          "description": "Users struggle to maintain healthy boundaries between work and personal life, leading to chronic stress and burnout. They need time management tools, boundary-setting techniques, and stress reduction strategies."
+        },
+        {
+          "label": "Perfectionism and Overachievement",
+          "description": "Users push themselves to unrealistic standards, leading to exhaustion and diminished performance. They need self-compassion practices, realistic goal-setting, and healthy achievement balance."
+        }
+      ]
+    },
+    {
+      "mode": "Trauma Recovery",
+      "persona_count": 5,
+      "problem_hypotheses": [
+        {
+          "label": "Emotional Regulation and Triggers",
+          "description": "Users experience intense emotional responses to triggers and struggle to regulate their reactions. They need grounding techniques, emotional awareness tools, and safe coping mechanisms."
+        },
+        {
+          "label": "Trust and Safety Building",
+          "description": "Users have difficulty feeling safe and trusting others after traumatic experiences. They need gradual exposure to safe situations, trust-building exercises, and tools for recognizing genuine safety."
+        }
+      ]
+    }
+  ]
+}

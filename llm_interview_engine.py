@@ -1364,8 +1364,12 @@ class AsyncInterviewProcessor:
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
-            "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.7),
+            "max_tokens": getattr(
+                getattr(self, "current_config", None), "max_tokens", 2000
+            ),
+            "temperature": getattr(
+                getattr(self, "current_config", None), "temperature", 0.7
+            ),
         }
 
         async with self.session.post(
@@ -1375,18 +1379,23 @@ class AsyncInterviewProcessor:
                 result = await response.json()
                 # Optional JSONL logging for request/response
                 try:
-                    cfg = getattr(self, 'current_config', None)
-                    if cfg and getattr(cfg, 'enable_jsonl_logging', False):
-                        runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                    cfg = getattr(self, "current_config", None)
+                    if cfg and getattr(cfg, "enable_jsonl_logging", False):
+                        runs_dir = getattr(self, "runs_dir", Path("outputs") / (getattr(self, "project_name", "Project")))  # type: ignore
                         runs_dir.mkdir(parents=True, exist_ok=True)
                         jsonl_path = runs_dir / "requests.jsonl"
                         with open(jsonl_path, "a") as jf:
-                            jf.write(json.dumps({
-                                "ts": datetime.now().isoformat(),
-                                "model": model,
-                                "request": data,
-                                "response": result,
-                            }) + "\n")
+                            jf.write(
+                                json.dumps(
+                                    {
+                                        "ts": datetime.now().isoformat(),
+                                        "model": model,
+                                        "request": data,
+                                        "response": result,
+                                    }
+                                )
+                                + "\n"
+                            )
                 except Exception:
                     pass
                 return result["choices"][0]["message"]["content"]
@@ -1518,8 +1527,8 @@ class LLMInsightAnalyzer:
         if not insight_text.strip():
             return {
                 "aligned": False,
-            "pain_points": [],
-            "desired_outcomes": [],
+                "pain_points": [],
+                "desired_outcomes": [],
                 "summary": "No insight content provided",
                 "error": "Empty insight text",
             }
@@ -1680,27 +1689,51 @@ Focus on making it readable and actionable for product development."""
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
-                temperature=getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
+                max_tokens=getattr(
+                    getattr(self, "current_config", None), "max_tokens", 2000
+                ),
+                temperature=getattr(
+                    getattr(self, "current_config", None), "temperature", 0.3
+                ),
             )
             # Optional JSONL logging for request/response
             try:
-                cfg = getattr(self, 'current_config', None)
-                if cfg and getattr(cfg, 'enable_jsonl_logging', False):
-                    runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                cfg = getattr(self, "current_config", None)
+                if cfg and getattr(cfg, "enable_jsonl_logging", False):
+                    runs_dir = getattr(self, "runs_dir", Path("outputs") / (getattr(self, "project_name", "Project")))  # type: ignore
                     runs_dir.mkdir(parents=True, exist_ok=True)
                     jsonl_path = runs_dir / "requests.jsonl"
                     with open(jsonl_path, "a") as jf:
-                        jf.write(json.dumps({
-                            "ts": datetime.now().isoformat(),
-                            "model": model,
-                            "request": {
-                                "messages": ["system omitted", {"role": "user", "content": prompt[:1000]}],
-                                "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
-                                "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
-                            },
-                            "response": response.model_dump() if hasattr(response, 'model_dump') else str(response),
-                        }) + "\n")
+                        jf.write(
+                            json.dumps(
+                                {
+                                    "ts": datetime.now().isoformat(),
+                                    "model": model,
+                                    "request": {
+                                        "messages": [
+                                            "system omitted",
+                                            {"role": "user", "content": prompt[:1000]},
+                                        ],
+                                        "max_tokens": getattr(
+                                            getattr(self, "current_config", None),
+                                            "max_tokens",
+                                            2000,
+                                        ),
+                                        "temperature": getattr(
+                                            getattr(self, "current_config", None),
+                                            "temperature",
+                                            0.3,
+                                        ),
+                                    },
+                                    "response": (
+                                        response.model_dump()
+                                        if hasattr(response, "model_dump")
+                                        else str(response)
+                                    ),
+                                }
+                            )
+                            + "\n"
+                        )
             except Exception:
                 pass
             return response.choices[0].message.content
@@ -2375,7 +2408,14 @@ class AsyncIterativeResearchEngine:
                             {
                                 k: v
                                 for k, v in insight.items()
-                                if k in {"success", "mode", "hypothesis", "persona_variant", "metrics"}
+                                if k
+                                in {
+                                    "success",
+                                    "mode",
+                                    "hypothesis",
+                                    "persona_variant",
+                                    "metrics",
+                                }
                             }
                             for insight in r.get("all_insights", [])
                         ],
@@ -2977,12 +3017,12 @@ class LLMInterviewEngine:
         """Load configuration from a JSON file path, or from stdin if not provided."""
         config_data: Dict[str, Any]
         if config_path:
-        print(f"\n📋 Loading Configuration from {config_path}")
-        print("-" * 40)
-        print(f"Loading config from: {config_path}")
-        try:
-            with open(config_path, "r") as f:
-                config_data = json.load(f)
+            print(f"\n📋 Loading Configuration from {config_path}")
+            print("-" * 40)
+            print(f"Loading config from: {config_path}")
+            try:
+                with open(config_path, "r") as f:
+                    config_data = json.load(f)
             except Exception as e:
                 print(f"❌ Unexpected error loading JSON file: {e}")
                 return self._create_new_project()
@@ -5021,27 +5061,51 @@ This roadmap was generated without any user insights. Please run interviews to c
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=getattr(getattr(self, 'current_config', None), 'max_tokens', 4000),
-                temperature=getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
+                max_tokens=getattr(
+                    getattr(self, "current_config", None), "max_tokens", 4000
+                ),
+                temperature=getattr(
+                    getattr(self, "current_config", None), "temperature", 0.3
+                ),
             )
             # Optional JSONL logging for request/response
             try:
-                cfg = getattr(self, 'current_config', None)
-                if cfg and getattr(cfg, 'enable_jsonl_logging', False):
-                    runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                cfg = getattr(self, "current_config", None)
+                if cfg and getattr(cfg, "enable_jsonl_logging", False):
+                    runs_dir = getattr(self, "runs_dir", Path("outputs") / (getattr(self, "project_name", "Project")))  # type: ignore
                     runs_dir.mkdir(parents=True, exist_ok=True)
                     jsonl_path = runs_dir / "requests.jsonl"
                     with open(jsonl_path, "a") as jf:
-                        jf.write(json.dumps({
-                            "ts": datetime.now().isoformat(),
-                            "model": model,
-                            "request": {
-                                "messages": ["system omitted", {"role": "user", "content": prompt[:1000]}],
-                                "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 4000),
-                                "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
-                            },
-                            "response": response.model_dump() if hasattr(response, 'model_dump') else str(response),
-                        }) + "\n")
+                        jf.write(
+                            json.dumps(
+                                {
+                                    "ts": datetime.now().isoformat(),
+                                    "model": model,
+                                    "request": {
+                                        "messages": [
+                                            "system omitted",
+                                            {"role": "user", "content": prompt[:1000]},
+                                        ],
+                                        "max_tokens": getattr(
+                                            getattr(self, "current_config", None),
+                                            "max_tokens",
+                                            4000,
+                                        ),
+                                        "temperature": getattr(
+                                            getattr(self, "current_config", None),
+                                            "temperature",
+                                            0.3,
+                                        ),
+                                    },
+                                    "response": (
+                                        response.model_dump()
+                                        if hasattr(response, "model_dump")
+                                        else str(response)
+                                    ),
+                                }
+                            )
+                            + "\n"
+                        )
             except Exception:
                 pass
             return response.choices[0].message.content
@@ -5839,7 +5903,9 @@ def main():
             if args.config_dir:
                 # Use config dir last path component as project default
                 try:
-                    cfg = ConfigManager.load_config_from_json(str(Path(args.config_dir) / "ygt_config.json"))
+                    cfg = ConfigManager.load_config_from_json(
+                        str(Path(args.config_dir) / "ygt_config.json")
+                    )
                     project_name = cfg.project_name
                 except Exception:
                     project_name = Path(args.config_dir).name or default_project
@@ -5848,7 +5914,11 @@ def main():
             if not runs_dir.exists():
                 print("No runs found.")
                 return
-            latest = sorted(runs_dir.glob("run_*"))[-1]
+            run_dirs = list(runs_dir.glob("run_*"))
+            if not run_dirs:
+                print("No run directories found.")
+                return
+            latest = sorted(run_dirs)[-1]
             metrics_path = latest / "metrics.json"
             if not metrics_path.exists():
                 print("No metrics.json found in latest run.")
@@ -5857,14 +5927,28 @@ def main():
             cycles = data.get("cycles", [])
             total = len(cycles)
             successes = sum(1 for c in cycles if c.get("success"))
-            avg_duration = sum(c.get("duration", 0) for c in cycles) / total if total else 0
+            avg_duration = (
+                sum(c.get("duration", 0) for c in cycles) / total if total else 0
+            )
             all_interviews = [iv for c in cycles for iv in c.get("interviews", [])]
-            success_rate = (sum(1 for iv in all_interviews if iv.get("success")) / len(all_interviews)) if all_interviews else 0
+            success_rate = (
+                (
+                    sum(1 for iv in all_interviews if iv.get("success"))
+                    / len(all_interviews)
+                )
+                if all_interviews
+                else 0
+            )
             print(f"Project: {data.get('project')}  Run: {data.get('run_timestamp')}")
-            print(f"Cycles: {total}  Successful: {successes}  Avg duration: {avg_duration:.1f}s")
-            print(f"Interviews: {len(all_interviews)}  Success rate: {success_rate:.1%}")
+            print(
+                f"Cycles: {total}  Successful: {successes}  Avg duration: {avg_duration:.1f}s"
+            )
+            print(
+                f"Interviews: {len(all_interviews)}  Success rate: {success_rate:.1%}"
+            )
             # Per-mode breakdown
             from collections import Counter
+
             modes = Counter(iv.get("mode") for iv in all_interviews)
             print("Modes:")
             for m, n in modes.items():
