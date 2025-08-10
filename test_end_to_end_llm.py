@@ -353,7 +353,7 @@ Aligned? Yes
         print(f"Results count: {len(results)}")
         for i, result in enumerate(results):
             print(f"Result {i}: {result}")
-        
+
         # Should process 3 interviews concurrently (max 2 at a time)
         # Should take less than 3 * individual_time due to concurrency
         assert len(results) == 3

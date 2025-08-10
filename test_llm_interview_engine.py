@@ -213,7 +213,11 @@ Test insight content"""
 
             assert result["persona"] == "Test persona content\n"
             assert result["interview_transcript"] == "Test interview content\n"
-            assert result["insight_summary"] == "Test insight content\n"
+            # Accept either legacy 'insight_summary' or new 'insights' key
+            assert (
+                result.get("insight_summary") == "Test insight content\n"
+                or result.get("insights") == "Test insight content\n"
+            )
 
             # Test JSON parsing
             json_response = '{"persona": "test", "interview_transcript": "test", "insight_summary": "test"}'
@@ -221,7 +225,61 @@ Test insight content"""
 
             assert result["persona"] == "test"
             assert result["interview_transcript"] == "test"
-            assert result["insight_summary"] == "test"
+            # Accept either legacy 'insight_summary' or new 'insights' key
+            assert (
+                result.get("insight_summary") == "test"
+                or result.get("insights") == "test"
+            )
+
+    def test_run_interviews_aggregates_insights_from_new_key(
+        self, monkeypatch, tmp_path
+    ):
+        """Ensure _run_interviews aggregates when result uses 'insights' key (not only 'insight_summary')."""
+        from pathlib import Path
+        import uuid
+
+        # Force auto-confirm path in _run_interviews
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "1")
+        monkeypatch.delenv("CI", raising=False)
+
+        engine = LLMInterviewEngine()
+        unique_name = f"TestAgg_{uuid.uuid4().hex[:6]}"
+        config = ProjectConfig(
+            project_name=unique_name,
+            llm_model="gpt-5-mini",
+            product_sketch="Test",
+            interview_modes=[
+                InterviewMode(
+                    mode="Recovery",
+                    persona_count=1,
+                    problem_hypotheses=[ProblemHypothesis(label="H1", description="D")],
+                )
+            ],
+            output_format="markdown",
+        )
+
+        # Patch _run_single_interview to return new 'insights' key
+        def fake_run_single(cfg, mode, hypo, persona_variant, run_ts):
+            return {
+                "persona": "P",
+                "interview_transcript": "T",
+                "insights": "Aligned? Yes\n- Point",
+            }
+
+        monkeypatch.setattr(engine, "_run_single_interview", fake_run_single)
+
+        # Execute
+        engine._run_interviews(config)
+
+        # Verify master report exists and contains alignment information or our content
+        master_path = Path("outputs") / unique_name / "master_report.md"
+        assert master_path.exists()
+        content = master_path.read_text()
+        assert (
+            ("Alignment Rate" in content)
+            or ("Aligned?" in content)
+            or ("Solution Alignment:" in content)
+        )
 
 
 class TestMasterReportAggregation:
@@ -306,7 +364,7 @@ class TestIntegratedReporting:
     def test_compile_integrated_insights(self):
         """Test compilation of insights from multiple runs"""
         engine = LLMInterviewEngine()
-        
+
         # Mock run data
         all_runs_data = [
             {
@@ -315,12 +373,12 @@ class TestIntegratedReporting:
                     {
                         "mode": "Recovery",
                         "hypothesis": "Overwhelm Regulation",
-                        "insights": "Aligned? Yes\nPain Points:\n- Stress\n- Overwhelm\nMicro-feature Suggestions:\nFeature A\nFeature B"
+                        "insights": "Aligned? Yes\nPain Points:\n- Stress\n- Overwhelm\nMicro-feature Suggestions:\nFeature A\nFeature B",
                     }
                 ],
                 "metadata": {"total_interviews": 25},
                 "completed": 25,
-                "failed": 0
+                "failed": 0,
             },
             {
                 "run_dir": "run_20250805_230210",
@@ -328,30 +386,34 @@ class TestIntegratedReporting:
                     {
                         "mode": "Recovery",
                         "hypothesis": "Overwhelm Regulation",
-                        "insights": "Aligned? Yes\nPain Points:\n- Stress\n- Anxiety\nMicro-feature Suggestions:\nFeature A\nFeature C"
+                        "insights": "Aligned? Yes\nPain Points:\n- Stress\n- Anxiety\nMicro-feature Suggestions:\nFeature A\nFeature C",
                     }
                 ],
                 "metadata": {"total_interviews": 25},
                 "completed": 25,
-                "failed": 0
-            }
+                "failed": 0,
+            },
         ]
-        
+
         integrated = engine._compile_integrated_insights(all_runs_data)
-        
+
         assert integrated["total_runs"] == 2
         assert integrated["total_interviews"] == 50
         assert "Recovery" in integrated["modes"]
         assert "Overwhelm Regulation" in integrated["modes"]["Recovery"]
-        
+
         # Check that pain points are aggregated
-        pain_points = integrated["modes"]["Recovery"]["Overwhelm Regulation"]["pain_points"]
+        pain_points = integrated["modes"]["Recovery"]["Overwhelm Regulation"][
+            "pain_points"
+        ]
         assert "Stress" in pain_points
         assert "Overwhelm" in pain_points
         assert "Anxiety" in pain_points
-        
+
         # Check that features are aggregated
-        features = integrated["modes"]["Recovery"]["Overwhelm Regulation"]["micro_features"]
+        features = integrated["modes"]["Recovery"]["Overwhelm Regulation"][
+            "micro_features"
+        ]
         assert "Feature A" in features
         assert "Feature B" in features
         assert "Feature C" in features
@@ -359,7 +421,7 @@ class TestIntegratedReporting:
     def test_generate_comprehensive_master_report(self):
         """Test generation of comprehensive master report"""
         engine = LLMInterviewEngine()
-        
+
         # Mock integrated insights
         integrated_insights = {
             "modes": {
@@ -368,7 +430,7 @@ class TestIntegratedReporting:
                         "solution_fits": ["✅ Aligned", "✅ Aligned"],
                         "pain_points": ["Stress", "Overwhelm", "Stress"],
                         "micro_features": ["Feature A", "Feature B", "Feature A"],
-                        "persona_count": 2
+                        "persona_count": 2,
                     }
                 }
             },
@@ -378,25 +440,25 @@ class TestIntegratedReporting:
             "micro_features": ["Feature A", "Feature B", "Feature A"],
             "run_summary": [
                 {"run_dir": "run_20250805_224909", "interviews": 25, "failed": 0},
-                {"run_dir": "run_20250805_230210", "interviews": 25, "failed": 0}
-            ]
+                {"run_dir": "run_20250805_230210", "interviews": 25, "failed": 0},
+            ],
         }
-        
+
         content = engine._generate_comprehensive_master_report(
             integrated_insights, [{"run_dir": "test"}], "TestProject"
         )
-        
+
         # Check that report contains expected sections
         assert "Integrated Master Report - TestProject" in content
         assert "Executive Summary" in content
         assert "Run History" in content
         assert "Comprehensive Insights by Mode" in content
         assert "Cross-Cutting Themes" in content
-        
+
         # Check that pain points are deduplicated and counted
         assert "Stress (2 mentions)" in content
         assert "Overwhelm (1 mentions)" in content
-        
+
         # Check that features are deduplicated and counted
         assert "Feature A (2 suggestions)" in content
         assert "Feature B (1 suggestions)" in content
@@ -404,7 +466,7 @@ class TestIntegratedReporting:
     def test_compile_roadmap_data(self):
         """Test compilation of roadmap data from multiple runs"""
         engine = LLMInterviewEngine()
-        
+
         # Mock run data
         all_runs_data = [
             {
@@ -413,10 +475,10 @@ class TestIntegratedReporting:
                     {
                         "mode": "Recovery",
                         "hypothesis": "Overwhelm Regulation",
-                        "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A"
+                        "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A",
                     }
                 ],
-                "metadata": {"total_interviews": 25}
+                "metadata": {"total_interviews": 25},
             },
             {
                 "run_dir": "run_20250805_230210",
@@ -424,28 +486,28 @@ class TestIntegratedReporting:
                     {
                         "mode": "Recovery",
                         "hypothesis": "Overwhelm Regulation",
-                        "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A"
+                        "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A",
                     }
                 ],
-                "metadata": {"total_interviews": 25}
-            }
+                "metadata": {"total_interviews": 25},
+            },
         ]
-        
+
         roadmap_data = engine._compile_roadmap_data(all_runs_data)
-        
+
         assert roadmap_data["total_interviews"] == 50
         assert len(roadmap_data["run_summary"]) == 2
-        
+
         # Check solution fit aggregation
         key = "Recovery/Overwhelm Regulation"
         assert key in roadmap_data["solution_fit_scores"]
         assert roadmap_data["solution_fit_scores"][key]["aligned"] == 2
         assert roadmap_data["solution_fit_scores"][key]["total"] == 2
-        
+
         # Check pain points aggregation
         assert "Stress" in roadmap_data["pain_points"]
         assert roadmap_data["pain_points"].count("Stress") == 2
-        
+
         # Check micro-features aggregation
         assert "Feature A" in roadmap_data["micro_features"]
         assert roadmap_data["micro_features"].count("Feature A") == 2
@@ -453,24 +515,24 @@ class TestIntegratedReporting:
     def test_generate_comprehensive_roadmap(self):
         """Test generation of comprehensive roadmap"""
         engine = LLMInterviewEngine()
-        
+
         # Mock roadmap data
         roadmap_data = {
             "solution_fit_scores": {
                 "Recovery/Overwhelm Regulation": {"aligned": 2, "total": 2},
-                "Stability/Energy Awareness": {"aligned": 1, "total": 2}
+                "Stability/Energy Awareness": {"aligned": 1, "total": 2},
             },
             "micro_features": ["Feature A", "Feature A", "Feature B"],
             "pain_points": ["Stress", "Stress", "Anxiety"],
             "run_summary": [
                 {"run_dir": "run_20250805_224909", "interviews": 25},
-                {"run_dir": "run_20250805_230210", "interviews": 25}
+                {"run_dir": "run_20250805_230210", "interviews": 25},
             ],
-            "total_interviews": 50
+            "total_interviews": 50,
         }
-        
+
         content = engine._generate_comprehensive_roadmap(roadmap_data, "TestProject")
-        
+
         # Check that roadmap contains expected sections
         assert "Integrated Development Roadmap - TestProject" in content
         assert "Executive Summary" in content
@@ -478,59 +540,53 @@ class TestIntegratedReporting:
         assert "Top Micro-Feature Suggestions" in content
         assert "Critical Pain Points to Address" in content
         assert "Implementation Strategy" in content
-        
+
         # Check that high priority features are identified
         assert "🔥 High Priority" in content
         assert "Overwhelm Regulation" in content
-        
+
         # Check that features are ranked by frequency
         assert "1. **Feature A** (2 suggestions)" in content
         assert "2. **Feature B** (1 suggestions)" in content
-        
+
         # Check that pain points are ranked by frequency
         assert "1. **Stress** (2 mentions)" in content
         assert "2. **Anxiety** (1 mentions)" in content
 
     def test_integrated_reporting_flow(self):
         """Test the complete integrated reporting flow"""
-        with patch("pathlib.Path.exists", return_value=False), \
-             patch("builtins.open", create=True) as mock_open, \
-             patch("pathlib.Path.glob", return_value=[]):
-            
+        with patch("pathlib.Path.exists", return_value=False), patch(
+            "builtins.open", create=True
+        ) as mock_open, patch("pathlib.Path.glob", return_value=[]):
+
             engine = LLMInterviewEngine()
-            
+
             # Mock current run data
             run_metadata = {
                 "model": "gpt-4o",
                 "modes": ["Recovery", "Stability"],
                 "total_interviews": 25,
-                "run_timestamp": "20250805_224909"
+                "run_timestamp": "20250805_224909",
             }
-            
+
             all_insights = [
                 {
                     "mode": "Recovery",
                     "hypothesis": "Overwhelm Regulation",
-                    "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A"
+                    "insights": "Aligned? Yes\nPain Points:\n- Stress\nMicro-feature Suggestions:\n- Feature A",
                 }
             ]
-            
+
             # Test integrated master report generation
             engine._update_integrated_master_report(
-                Path("test_master.md"),
-                run_metadata,
-                25,
-                [],
-                all_insights
+                Path("test_master.md"), run_metadata, 25, [], all_insights
             )
-            
+
             # Test integrated roadmap generation
             engine._update_integrated_roadmap(
-                Path("test_roadmap.md"),
-                all_insights,
-                run_metadata
+                Path("test_roadmap.md"), all_insights, run_metadata
             )
-            
+
             # Verify that files were written
             assert mock_open.call_count >= 2
 
@@ -566,33 +622,33 @@ class TestJSONConfigFunctionality:
                     "problem_hypotheses": [
                         {
                             "label": "test_hypothesis",
-                            "description": "A test hypothesis for JSON config"
+                            "description": "A test hypothesis for JSON config",
                         }
-                    ]
+                    ],
                 }
             ],
-            "output_format": "markdown"
+            "output_format": "markdown",
         }
-        
+
         json_str = json.dumps(test_config, indent=2)
-        
+
         with patch("builtins.input") as mock_input:
             # Mock user inputs for JSON config input only (not the project choice)
             mock_input.side_effect = [
-                *json_str.split('\n'),  # JSON config lines
+                *json_str.split("\n"),  # JSON config lines
                 "",  # Empty line to finish JSON input
-                ""   # Second empty line to finish
+                "",  # Second empty line to finish
             ]
 
             with patch("os.getenv", return_value="test-api-key"):
                 engine = LLMInterviewEngine()
-                
+
                 # Test that the engine can load JSON config
                 # This would normally call run_cli(), but we'll test the method directly
-                with patch.object(engine, '_generate_interview_prompt') as mock_prompt:
+                with patch.object(engine, "_generate_interview_prompt") as mock_prompt:
                     mock_prompt.return_value = "Test prompt"
                     config = engine._load_json_config()
-                
+
                 assert config.project_name == "JSONTestProject"
                 assert config.llm_model == "gpt-4o"
                 assert config.product_sketch == "A test product for JSON config"
@@ -600,7 +656,10 @@ class TestJSONConfigFunctionality:
                 assert config.interview_modes[0].mode == "test_mode"
                 assert config.interview_modes[0].persona_count == 2
                 assert len(config.interview_modes[0].problem_hypotheses) == 1
-                assert config.interview_modes[0].problem_hypotheses[0].label == "test_hypothesis"
+                assert (
+                    config.interview_modes[0].problem_hypotheses[0].label
+                    == "test_hypothesis"
+                )
 
     def test_json_config_validation(self):
         """Test validation of JSON configuration"""
@@ -609,15 +668,17 @@ class TestJSONConfigFunctionality:
             mock_input.side_effect = [
                 "{ invalid json }",  # Invalid JSON
                 "",  # Empty line to finish JSON input
-                ""   # Second empty line to finish
+                "",  # Second empty line to finish
             ]
 
             with patch("os.getenv", return_value="test-api-key"):
                 engine = LLMInterviewEngine()
-                
+
                 # Test that invalid JSON falls back to new project creation
-                with patch.object(engine, '_create_new_project') as mock_create:
-                    mock_create.return_value = ProjectConfig(project_name="FallbackProject")
+                with patch.object(engine, "_create_new_project") as mock_create:
+                    mock_create.return_value = ProjectConfig(
+                        project_name="FallbackProject"
+                    )
                     config = engine._load_json_config()
                     assert config.project_name == "FallbackProject"
 
@@ -628,25 +689,27 @@ class TestJSONConfigFunctionality:
             # Missing project_name
             "product_sketch": "A test product",
             "interview_modes": [],
-            "output_format": "markdown"
+            "output_format": "markdown",
         }
-        
+
         json_str = json.dumps(invalid_config, indent=2)
-        
+
         with patch("builtins.input") as mock_input:
             # Mock user inputs for JSON config input only
             mock_input.side_effect = [
-                *json_str.split('\n'),  # JSON config lines
+                *json_str.split("\n"),  # JSON config lines
                 "",  # Empty line to finish JSON input
-                ""   # Second empty line to finish
+                "",  # Second empty line to finish
             ]
 
             with patch("os.getenv", return_value="test-api-key"):
                 engine = LLMInterviewEngine()
-                
+
                 # Test that missing required fields falls back to new project creation
-                with patch.object(engine, '_create_new_project') as mock_create:
-                    mock_create.return_value = ProjectConfig(project_name="FallbackProject")
+                with patch.object(engine, "_create_new_project") as mock_create:
+                    mock_create.return_value = ProjectConfig(
+                        project_name="FallbackProject"
+                    )
                     config = engine._load_json_config()
                     assert config.project_name == "FallbackProject"
 
@@ -655,10 +718,10 @@ class TestJSONConfigFunctionality:
         with patch("llm_interview_engine.load_dotenv") as mock_load_dotenv:
             with patch("os.getenv", return_value="test-api-key-from-env"):
                 engine = LLMInterviewEngine()
-                
+
                 # Verify that load_dotenv was called
                 mock_load_dotenv.assert_called_once()
-                
+
                 # Verify that API key was loaded from environment
                 assert engine.api_key == "test-api-key-from-env"
 
@@ -675,36 +738,41 @@ class TestJSONConfigFunctionality:
                     "problem_hypotheses": [
                         {
                             "label": "emotional_overwhelm",
-                            "description": "Users experience intense emotional overwhelm"
+                            "description": "Users experience intense emotional overwhelm",
                         }
-                    ]
+                    ],
                 }
             ],
-            "output_format": "markdown"
+            "output_format": "markdown",
         }
-        
+
         json_str = json.dumps(test_config, indent=2)
-        
+
         with patch("builtins.input") as mock_input:
             # Mock user inputs for JSON config input only
             mock_input.side_effect = [
-                *json_str.split('\n'),  # JSON config lines
+                *json_str.split("\n"),  # JSON config lines
                 "",  # Empty line to finish JSON input
-                ""   # Second empty line to finish
+                "",  # Second empty line to finish
             ]
 
             with patch("os.getenv", return_value="test-api-key"):
                 engine = LLMInterviewEngine()
-                
+
                 # Test the complete flow
                 config = engine._load_json_config()
-                
+
                 # Verify config was loaded correctly
                 assert config.project_name == "EndToEndTestProject"
                 assert len(config.interview_modes) == 1
                 assert config.interview_modes[0].mode == "trauma_informed"
                 assert len(config.interview_modes[0].problem_hypotheses) == 1
-                assert config.interview_modes[0].problem_hypotheses[0].label == "emotional_overwhelm"
-                
+                assert (
+                    config.interview_modes[0].problem_hypotheses[0].label
+                    == "emotional_overwhelm"
+                )
+
                 # Verify config was saved
-                assert (engine.output_dir / "EndToEndTestProject" / "config.json").exists()
+                assert (
+                    engine.output_dir / "EndToEndTestProject" / "config.json"
+                ).exists()
