@@ -1,36 +1,36 @@
-# Master Report - TestProject
+# Master Report - YGT
 
-**Generated:** 2025-08-08 13:58:46
+**Generated:** 2025-08-08 14:28:43
 **Total Cycles:** 1
 **Successful Cycles:** 1
 
 ## Overall Statistics
 
-- **Total Insights:** 2
-- **Total Personas:** 2
+- **Total Insights:** 1
+- **Total Personas:** 1
 - **Config Evolutions:** 0
 
 ## Cycle-by-Cycle Improvements
 
 ### Cycle 1
 
-- **Alignment Rate:** 50.0%
-- **Insights Generated:** 2
-- **Personas Used:** 2
-- **Duration:** 0.4s
+- **Alignment Rate:** 0.0%
+- **Insights Generated:** 1
+- **Personas Used:** 1
+- **Duration:** 6.7s
 - **Config Evolution:** ❌ No evolution needed
 
 ## Evolution Timeline
 
 ### Cycle 1 Changes
 
-- **Alignment Rate:** 50.0%
-- **Duration:** 0.4s
+- **Alignment Rate:** 0.0%
+- **Duration:** 6.7s
 - **Config Evolution:** ❌ No changes needed
 
 ## Key Insights Summary
 
-- **Aligned Hypotheses:** 1
+- **Aligned Hypotheses:** 0
 - **Misaligned Hypotheses:** 0
-- **Total Interview Responses:** 2
+- **Total Interview Responses:** 1
 

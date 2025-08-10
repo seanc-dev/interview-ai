@@ -1,6 +1,6 @@
 # Master Report - TestProject
 
-**Generated:** 2025-08-08 12:54:03
+**Generated:** 2025-08-08 14:28:24
 **Total Cycles:** 1
 **Successful Cycles:** 1
 
@@ -14,23 +14,23 @@
 
 ### Cycle 1
 
-- **Alignment Rate:** 0.0%
+- **Alignment Rate:** 50.0%
 - **Insights Generated:** 2
 - **Personas Used:** 2
-- **Duration:** 19.3s
+- **Duration:** 12.4s
 - **Config Evolution:** ❌ No evolution needed
 
 ## Evolution Timeline
 
 ### Cycle 1 Changes
 
-- **Alignment Rate:** 0.0%
-- **Duration:** 19.3s
+- **Alignment Rate:** 50.0%
+- **Duration:** 12.4s
 - **Config Evolution:** ❌ No changes needed
 
 ## Key Insights Summary
 
-- **Aligned Hypotheses:** 0
+- **Aligned Hypotheses:** 1
 - **Misaligned Hypotheses:** 0
 - **Total Interview Responses:** 2
 

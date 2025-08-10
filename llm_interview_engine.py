@@ -80,6 +80,9 @@ class ProjectConfig:
     interview_modes: List[InterviewMode] = None
     output_format: str = "markdown"
     version: str = "v1"
+    max_tokens: int = 2000
+    temperature: float = 0.7
+    enable_jsonl_logging: bool = False
 
     def __post_init__(self):
         if self.interview_modes is None:
@@ -1173,6 +1176,7 @@ class AsyncInterviewProcessor:
 
         async with semaphore_context:
             async with rate_limit_context:
+                started_at = datetime.now()
                 try:
                     # Generate interview prompt
                     prompt = self._generate_interview_prompt_async(
@@ -1193,6 +1197,7 @@ class AsyncInterviewProcessor:
                     else:
                         result = self._parse_json_response(response)
 
+                    finished_at = datetime.now()
                     return {
                         "success": True,
                         "mode": mode.mode,
@@ -1201,15 +1206,28 @@ class AsyncInterviewProcessor:
                         "insights": result.get("insights", ""),
                         "persona": result.get("persona", ""),
                         "interview_transcript": result.get("interview_transcript", ""),
+                        "metrics": {
+                            "started_at": started_at.isoformat(),
+                            "finished_at": finished_at.isoformat(),
+                            "duration_s": (finished_at - started_at).total_seconds(),
+                            "model": config.llm_model,
+                        },
                     }
 
                 except Exception as e:
+                    finished_at = datetime.now()
                     return {
                         "success": False,
                         "error": str(e),
                         "mode": mode.mode,
                         "hypothesis": hypothesis.label,
                         "persona_variant": persona_variant,
+                        "metrics": {
+                            "started_at": started_at.isoformat(),
+                            "finished_at": finished_at.isoformat(),
+                            "duration_s": (finished_at - started_at).total_seconds(),
+                            "model": config.llm_model,
+                        },
                     }
 
     async def process_interviews_concurrently(
@@ -1346,8 +1364,8 @@ class AsyncInterviewProcessor:
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 2000,
-            "temperature": 0.7,
+            "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
+            "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.7),
         }
 
         async with self.session.post(
@@ -1355,6 +1373,22 @@ class AsyncInterviewProcessor:
         ) as response:
             if response.status == 200:
                 result = await response.json()
+                # Optional JSONL logging for request/response
+                try:
+                    cfg = getattr(self, 'current_config', None)
+                    if cfg and getattr(cfg, 'enable_jsonl_logging', False):
+                        runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                        runs_dir.mkdir(parents=True, exist_ok=True)
+                        jsonl_path = runs_dir / "requests.jsonl"
+                        with open(jsonl_path, "a") as jf:
+                            jf.write(json.dumps({
+                                "ts": datetime.now().isoformat(),
+                                "model": model,
+                                "request": data,
+                                "response": result,
+                            }) + "\n")
+                except Exception:
+                    pass
                 return result["choices"][0]["message"]["content"]
             else:
                 error_text = await response.text()
@@ -1646,9 +1680,29 @@ Focus on making it readable and actionable for product development."""
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=2000,
-                temperature=0.3,
+                max_tokens=getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
+                temperature=getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
             )
+            # Optional JSONL logging for request/response
+            try:
+                cfg = getattr(self, 'current_config', None)
+                if cfg and getattr(cfg, 'enable_jsonl_logging', False):
+                    runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                    runs_dir.mkdir(parents=True, exist_ok=True)
+                    jsonl_path = runs_dir / "requests.jsonl"
+                    with open(jsonl_path, "a") as jf:
+                        jf.write(json.dumps({
+                            "ts": datetime.now().isoformat(),
+                            "model": model,
+                            "request": {
+                                "messages": ["system omitted", {"role": "user", "content": prompt[:1000]}],
+                                "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 2000),
+                                "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
+                            },
+                            "response": response.model_dump() if hasattr(response, 'model_dump') else str(response),
+                        }) + "\n")
+            except Exception:
+                pass
             return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"OpenAI API call failed: {str(e)}")
@@ -1980,9 +2034,9 @@ class AsyncIterativeResearchEngine:
         self.runs_dir = self.project_dir / "runs"
 
         # Create directories
-        self.project_dir.mkdir(exist_ok=True)
-        self.config_dir_path.mkdir(exist_ok=True)
-        self.runs_dir.mkdir(exist_ok=True)
+        self.project_dir.mkdir(parents=True, exist_ok=True)
+        self.config_dir_path.mkdir(parents=True, exist_ok=True)
+        self.runs_dir.mkdir(parents=True, exist_ok=True)
 
     def _load_current_config(self) -> ProjectConfig:
         """Load the current configuration from the config directory."""
@@ -2302,6 +2356,39 @@ class AsyncIterativeResearchEngine:
 
         # Generate master report and roadmap
         await self._generate_master_report_and_roadmap(results, run_dir)
+
+        # Save JSON metrics for the run
+        try:
+            metrics = {
+                "project": self.project_name,
+                "run_timestamp": run_timestamp,
+                "cycles": [
+                    {
+                        "cycle_number": r.get("cycle_number"),
+                        "success": r.get("success"),
+                        "alignment_rate": r.get("alignment_rate"),
+                        "duration": r.get("duration"),
+                        "personas_generated": r.get("personas_generated"),
+                        "config_evolved": r.get("config_evolved"),
+                        "config_version": r.get("config_version"),
+                        "interviews": [
+                            {
+                                k: v
+                                for k, v in insight.items()
+                                if k in {"success", "mode", "hypothesis", "persona_variant", "metrics"}
+                            }
+                            for insight in r.get("all_insights", [])
+                        ],
+                    }
+                    for r in results
+                ],
+            }
+            import json as _json
+
+            with open(run_dir / "metrics.json", "w") as mf:
+                _json.dump(metrics, mf, indent=2)
+        except Exception as _:
+            pass
 
         # Print final summary
         self._print_final_summary(results)
@@ -4611,6 +4698,9 @@ class ConfigManager:
             interview_modes=interview_modes,
             output_format=data.get("output_format", "markdown"),
             version=data.get("version", "v1"),
+            max_tokens=data.get("max_tokens", 2000),
+            temperature=data.get("temperature", 0.7),
+            enable_jsonl_logging=data.get("enable_jsonl_logging", False),
         )
 
     @staticmethod
@@ -4890,9 +4980,29 @@ This roadmap was generated without any user insights. Please run interviews to c
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=4000,
-                temperature=0.3,
+                max_tokens=getattr(getattr(self, 'current_config', None), 'max_tokens', 4000),
+                temperature=getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
             )
+            # Optional JSONL logging for request/response
+            try:
+                cfg = getattr(self, 'current_config', None)
+                if cfg and getattr(cfg, 'enable_jsonl_logging', False):
+                    runs_dir = getattr(self, 'runs_dir', Path("outputs") / (getattr(self, 'project_name', 'Project')))  # type: ignore
+                    runs_dir.mkdir(parents=True, exist_ok=True)
+                    jsonl_path = runs_dir / "requests.jsonl"
+                    with open(jsonl_path, "a") as jf:
+                        jf.write(json.dumps({
+                            "ts": datetime.now().isoformat(),
+                            "model": model,
+                            "request": {
+                                "messages": ["system omitted", {"role": "user", "content": prompt[:1000]}],
+                                "max_tokens": getattr(getattr(self, 'current_config', None), 'max_tokens', 4000),
+                                "temperature": getattr(getattr(self, 'current_config', None), 'temperature', 0.3),
+                            },
+                            "response": response.model_dump() if hasattr(response, 'model_dump') else str(response),
+                        }) + "\n")
+            except Exception:
+                pass
             return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"OpenAI API call failed: {str(e)}")
@@ -5647,6 +5757,16 @@ def main():
             action="store_true",
             help="Run a single solution discovery session from sample insights.",
         )
+        parser.add_argument(
+            "--metrics-summary",
+            action="store_true",
+            help="Print a summary of metrics.json for the latest run.",
+        )
+        parser.add_argument(
+            "--set-jsonl-logging",
+            action="store_true",
+            help="Enable JSONL request/response logging for this run (writes requests.jsonl).",
+        )
         args = parser.parse_args()
 
         # Check if we should run iterative research mode
@@ -5671,6 +5791,34 @@ def main():
                 )
             )
             print("✅ Solution discovery completed")
+        elif args.metrics_summary:
+            # Find latest run dir and print metrics summary
+            project_dir = Path("outputs") / (Path(args.config_dir).name if args.config_dir else "YGT")
+            runs_dir = project_dir / "runs"
+            if not runs_dir.exists():
+                print("No runs found.")
+                return
+            latest = sorted(runs_dir.glob("run_*"))[-1]
+            metrics_path = latest / "metrics.json"
+            if not metrics_path.exists():
+                print("No metrics.json found in latest run.")
+                return
+            data = json.load(open(metrics_path))
+            cycles = data.get("cycles", [])
+            total = len(cycles)
+            successes = sum(1 for c in cycles if c.get("success"))
+            avg_duration = sum(c.get("duration", 0) for c in cycles) / total if total else 0
+            all_interviews = [iv for c in cycles for iv in c.get("interviews", [])]
+            success_rate = (sum(1 for iv in all_interviews if iv.get("success")) / len(all_interviews)) if all_interviews else 0
+            print(f"Project: {data.get('project')}  Run: {data.get('run_timestamp')}")
+            print(f"Cycles: {total}  Successful: {successes}  Avg duration: {avg_duration:.1f}s")
+            print(f"Interviews: {len(all_interviews)}  Success rate: {success_rate:.1%}")
+            # Per-mode breakdown
+            from collections import Counter
+            modes = Counter(iv.get("mode") for iv in all_interviews)
+            print("Modes:")
+            for m, n in modes.items():
+                print(f" - {m}: {n}")
         elif args.config_dir:
             print("🚀 Starting Async Iterative Research Mode")
             engine = AsyncIterativeResearchEngine(
@@ -5679,6 +5827,9 @@ def main():
                 cycles=args.cycles,
                 evolution_enabled=args.evolution_enabled,
             )
+            if args.set_jsonl_logging:
+                # enable JSONL logging for this run
+                engine.current_config.enable_jsonl_logging = True
             results = asyncio.run(engine.run_iterative_research_async())
             print(f"\n✅ Async iterative research completed with {len(results)} cycles")
         else:
