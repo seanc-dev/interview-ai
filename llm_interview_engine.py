@@ -1189,7 +1189,9 @@ class AsyncInterviewProcessor:
                     )
 
                     # Call OpenAI API asynchronously
-                    response = await self._call_openai_async(prompt, config.llm_model)
+                    response = await self._call_openai_async(
+                        prompt, config.llm_model, config
+                    )
 
                     # Parse response
                     if config.output_format == "markdown":
@@ -1351,7 +1353,9 @@ class AsyncInterviewProcessor:
             + assignment
         )
 
-    async def _call_openai_async(self, prompt: str, model: str) -> str:
+    async def _call_openai_async(
+        self, prompt: str, model: str, config: ProjectConfig = None
+    ) -> str:
         """Call OpenAI API asynchronously."""
         if not self.session:
             raise RuntimeError("Session not initialized. Use async context manager.")
@@ -1364,19 +1368,26 @@ class AsyncInterviewProcessor:
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": getattr(
-                getattr(self, "current_config", None), "max_tokens", 2000
-            ),
-            "temperature": getattr(
-                getattr(self, "current_config", None), "temperature", 0.7
-            ),
         }
+
+        # Handle different parameter names and constraints for different models
+        if "gpt-5" in model:
+            # GPT-5 models use max_completion_tokens and only support default temperature
+            data["max_completion_tokens"] = (
+                getattr(config, "max_tokens", 2000) if config else 2000
+            )
+            # GPT-5 models don't support custom temperature - only use default
+        else:
+            # Older models use max_tokens and support custom temperature
+            data["max_tokens"] = getattr(config, "max_tokens", 2000) if config else 2000
+            data["temperature"] = getattr(config, "temperature", 0.7) if config else 0.7
 
         async with self.session.post(
             "https://api.openai.com/v1/chat/completions", headers=headers, json=data
         ) as response:
             if response.status == 200:
                 result = await response.json()
+
                 # Optional JSONL logging for request/response
                 try:
                     cfg = getattr(self, "current_config", None)
@@ -1398,30 +1409,76 @@ class AsyncInterviewProcessor:
                             )
                 except Exception:
                     pass
+
                 return result["choices"][0]["message"]["content"]
             else:
                 error_text = await response.text()
                 raise Exception(f"OpenAI API error: {response.status} - {error_text}")
 
     def _parse_markdown_response(self, response: str) -> Dict:
-        """Parse markdown response (reuse existing logic)."""
-        # This would reuse the existing parsing logic
-        return {
-            "insights": response,
-            "persona": "Generated persona",
-            "interview_transcript": "Interview transcript",
-        }
+        """Parse markdown response into structured data"""
+        sections = {"persona": "", "interview_transcript": "", "insights": ""}
+
+        current_section = None
+        lines = response.split("\n")
+
+        for line in lines:
+            raw_line = line.rstrip("\n")
+            line_lower = raw_line.lower().strip()
+
+            # Detect section headers
+            if line_lower.startswith("## persona") or line_lower.startswith(
+                "## person"
+            ):
+                current_section = "persona"
+                continue
+            if line_lower.startswith("## interview") or line_lower.startswith(
+                "## transcript"
+            ):
+                current_section = "interview_transcript"
+                continue
+
+            # Treat these as part of the insights body and include the header line itself
+            insight_header = (
+                line_lower.startswith("## insight")
+                or line_lower.startswith("## synthesis")
+                or line_lower.startswith("## summary")
+                or line_lower.startswith("## alignment")
+                or line_lower.startswith("## key insight")
+                or line_lower.startswith("## pain point")
+                or line_lower.startswith("## desired outcome")
+            )
+            if insight_header:
+                current_section = "insights"
+                # Include the header itself to preserve labels like "Pain Points"
+                sections[current_section] += raw_line + "\n"
+                continue
+
+            if current_section and raw_line.strip():
+                # Add content to current section
+                sections[current_section] += raw_line + "\n"
+
+        # If no specific sections found, treat the entire response as insights
+        if not any(sections.values()):
+            sections["insights"] = response
+
+        return sections
 
     def _parse_json_response(self, response: str) -> Dict:
-        """Parse JSON response (reuse existing logic)."""
+        """Parse JSON response into structured data"""
         try:
-            return json.loads(response)
-        except json.JSONDecodeError:
+            parsed = json.loads(response)
+            # Map JSON fields to our expected structure
             return {
-                "insights": response,
-                "persona": "Generated persona",
-                "interview_transcript": "Interview transcript",
+                "insights": parsed.get(
+                    "insights", parsed.get("insight_summary", response)
+                ),
+                "persona": parsed.get("persona", ""),
+                "interview_transcript": parsed.get("interview_transcript", ""),
             }
+        except json.JSONDecodeError:
+            # Fallback to markdown parsing if JSON is malformed
+            return self._parse_markdown_response(response)
 
 
 class AsyncInsightAggregator:
@@ -1435,12 +1492,57 @@ class AsyncInsightAggregator:
 
     async def aggregate_insights_async(self, insights: List[Dict]) -> Dict:
         """Aggregate insights asynchronously."""
-        # Process insights concurrently
-        tasks = [self._process_single_insight_async(insight) for insight in insights]
+        # Filter out failed interviews - only process successful ones with actual content
+        successful_insights = [
+            insight
+            for insight in insights
+            if insight.get("success", True) and insight.get("insights", "").strip()
+        ]
+
+        failed_insights = [
+            insight
+            for insight in insights
+            if not insight.get("success", True)
+            or not insight.get("insights", "").strip()
+        ]
+
+        print(
+            f"📊 Processing {len(successful_insights)} successful insights, {len(failed_insights)} failed interviews"
+        )
+
+        if not successful_insights:
+            print("⚠️  No successful insights to process - returning empty aggregation")
+            return {
+                "alignment_rate": 0.0,
+                "total_insights": 0,
+                "aligned_count": 0,
+                "pain_points": [],
+                "desired_outcomes": [],
+                "common_pain_points": [],
+                "common_desired_outcomes": [],
+                "modes": [],
+                "failed_interviews": len(failed_insights),
+                "failure_reasons": [
+                    insight.get("error", "Unknown error") for insight in failed_insights
+                ],
+            }
+
+        # Process successful insights concurrently
+        tasks = [
+            self._process_single_insight_async(insight)
+            for insight in successful_insights
+        ]
         processed_insights = await asyncio.gather(*tasks)
 
         # Aggregate results
-        return self._aggregate_processed_insights(processed_insights)
+        result = self._aggregate_processed_insights(processed_insights)
+        result["failed_interviews"] = len(failed_insights)
+        if failed_insights:
+            result["failure_reasons"] = [
+                insight.get("error", "Unknown error") for insight in failed_insights
+            ]
+
+        return result
 
     async def _process_single_insight_async(self, insight: Dict) -> Dict:
         """Process a single insight asynchronously."""
@@ -3137,7 +3239,11 @@ class LLMInterviewEngine:
     def _prompt_project_action(self) -> str:
         """Prompt user for action on existing project"""
         while True:
-            action = input("\nAction: reuse/modify/variant? ").strip().lower()
+            # In CI or test environments, default to reuse to avoid blocking
+            if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"):
+                action = "reuse"
+            else:
+                action = input("\nAction: reuse/modify/variant? ").strip().lower()
             if action in ["reuse", "modify", "variant"]:
                 return action
             print("Please enter 'reuse', 'modify', or 'variant'")
@@ -3282,14 +3388,17 @@ class LLMInterviewEngine:
                             run_dir, mode, hypothesis, persona_variant, result
                         )
 
-                        # Collect insights for aggregation
-                        if "insight_summary" in result:
+                        # Collect insights for aggregation (support legacy and new keys)
+                        insights_text = result.get("insights") or result.get(
+                            "insight_summary"
+                        )
+                        if insights_text is not None:
                             all_insights.append(
                                 {
                                     "mode": mode.mode,
                                     "hypothesis": hypothesis.label,
                                     "persona_variant": persona_variant,
-                                    "insights": result["insight_summary"],
+                                    "insights": insights_text,
                                 }
                             )
 
@@ -3400,30 +3509,61 @@ class LLMInterviewEngine:
 
     def _parse_markdown_response(self, response: str) -> Dict:
         """Parse markdown response into structured data"""
-        sections = {"persona": "", "interview_transcript": "", "insight_summary": ""}
+        sections = {"persona": "", "interview_transcript": "", "insights": ""}
 
         current_section = None
         lines = response.split("\n")
 
         for line in lines:
-            if line.startswith("## Persona"):
+            line_lower = line.lower().strip()
+
+            # Detect section headers
+            if line_lower.startswith("## persona") or line_lower.startswith(
+                "## person"
+            ):
                 current_section = "persona"
-            elif line.startswith("## Interview Transcript"):
+            elif line_lower.startswith("## interview") or line_lower.startswith(
+                "## transcript"
+            ):
                 current_section = "interview_transcript"
-            elif line.startswith("## Insight Summary"):
-                current_section = "insight_summary"
+            elif (
+                line_lower.startswith("## insight")
+                or line_lower.startswith("## synthesis")
+                or line_lower.startswith("## summary")
+            ):
+                current_section = "insights"
+            elif (
+                line_lower.startswith("## alignment")
+                or line_lower.startswith("## key insight")
+                or line_lower.startswith("## pain point")
+                or line_lower.startswith("## desired outcome")
+            ):
+                # These are subsections of insights, continue with insights section
+                current_section = "insights"
             elif current_section and line.strip():
+                # Add content to current section
                 sections[current_section] += line + "\n"
+
+        # If no specific sections found, treat the entire response as insights
+        if not any(sections.values()):
+            sections["insights"] = response
 
         return sections
 
     def _parse_json_response(self, response: str) -> Dict:
         """Parse JSON response into structured data"""
         try:
-            return json.loads(response)
+            parsed = json.loads(response)
+            # Map JSON fields to our expected structure
+            return {
+                "insights": parsed.get(
+                    "insights", parsed.get("insight_summary", response)
+                ),
+                "persona": parsed.get("persona", ""),
+                "interview_transcript": parsed.get("interview_transcript", ""),
+            }
         except json.JSONDecodeError:
             # Fallback to markdown parsing if JSON is malformed
-            logger.warning("JSON response malformed, falling back to markdown parsing")
             return self._parse_markdown_response(response)
 
     def _save_interview_results(
@@ -5575,7 +5715,9 @@ class AsyncFocusGroupEngine:
         try:
             # Prefer existing persona generator if available
             generator = AsyncPersonaGenerator(api_key=self.api_key)
-            personas = await generator.generate_personas_async(count=count)
+            personas = await generator.generate_personas_async(
+                count=count, cycle_number=1
+            )
             # Normalize to simple dicts
             participants: List[Dict] = []
             for idx, p in enumerate(personas, start=1):
