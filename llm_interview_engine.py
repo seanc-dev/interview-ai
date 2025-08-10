@@ -1518,8 +1518,8 @@ class LLMInsightAnalyzer:
         if not insight_text.strip():
             return {
                 "aligned": False,
-                "pain_points": [],
-                "desired_outcomes": [],
+            "pain_points": [],
+            "desired_outcomes": [],
                 "summary": "No insight content provided",
                 "error": "Empty insight text",
             }
@@ -2431,6 +2431,47 @@ class AsyncIterativeResearchEngine:
         print(f"🗺️  Generated roadmap: {roadmap_path}")
         print(f"📝 Generated evolution log: {self.project_dir}/evolution_log.md")
 
+        # Generate simple HTML summary page
+        try:
+            html = f"""
+<!doctype html>
+<html>
+<head>
+  <meta charset=\"utf-8\" />
+  <title>{self.project_name} - Run Summary</title>
+  <style>
+    body {{ font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }}
+    .card {{ border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; }}
+    pre {{ white-space: pre-wrap; }}
+  </style>
+  </head>
+<body>
+  <h1>{self.project_name} - Run Summary</h1>
+  <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+  <div class="grid">
+    <div class="card">
+      <h2>Master Report</h2>
+      <p><a href="master_report.md">Open</a></p>
+    </div>
+    <div class="card">
+      <h2>Roadmap</h2>
+      <p><a href="roadmap.md">Open</a></p>
+    </div>
+    <div class="card">
+      <h2>Metrics</h2>
+      <p><a href="metrics.json">Open</a></p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+            with open(run_dir / "index.html", "w") as hf:
+                hf.write(html)
+            print(f"🧾 Generated HTML summary: {run_dir/'index.html'}")
+        except Exception:
+            pass
+
     def _evolve_hypotheses_based_on_insights(
         self, current_hypotheses: List[ProblemHypothesis], evolution_signals: Dict
     ) -> List[ProblemHypothesis]:
@@ -2936,12 +2977,12 @@ class LLMInterviewEngine:
         """Load configuration from a JSON file path, or from stdin if not provided."""
         config_data: Dict[str, Any]
         if config_path:
-            print(f"\n📋 Loading Configuration from {config_path}")
-            print("-" * 40)
-            print(f"Loading config from: {config_path}")
-            try:
-                with open(config_path, "r") as f:
-                    config_data = json.load(f)
+        print(f"\n📋 Loading Configuration from {config_path}")
+        print("-" * 40)
+        print(f"Loading config from: {config_path}")
+        try:
+            with open(config_path, "r") as f:
+                config_data = json.load(f)
             except Exception as e:
                 print(f"❌ Unexpected error loading JSON file: {e}")
                 return self._create_new_project()
@@ -5793,7 +5834,16 @@ def main():
             print("✅ Solution discovery completed")
         elif args.metrics_summary:
             # Find latest run dir and print metrics summary
-            project_dir = Path("outputs") / (Path(args.config_dir).name if args.config_dir else "YGT")
+            default_project = "YGT"
+            project_name = default_project
+            if args.config_dir:
+                # Use config dir last path component as project default
+                try:
+                    cfg = ConfigManager.load_config_from_json(str(Path(args.config_dir) / "ygt_config.json"))
+                    project_name = cfg.project_name
+                except Exception:
+                    project_name = Path(args.config_dir).name or default_project
+            project_dir = Path("outputs") / project_name
             runs_dir = project_dir / "runs"
             if not runs_dir.exists():
                 print("No runs found.")
