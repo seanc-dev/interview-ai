@@ -1382,6 +1382,10 @@ class AsyncInterviewProcessor:
             data["max_tokens"] = getattr(config, "max_tokens", 2000) if config else 2000
             data["temperature"] = getattr(config, "temperature", 0.7) if config else 0.7
 
+        # For newer models (e.g., gpt-5-*), omit max_tokens which is unsupported on chat/completions
+        if model and str(model).startswith("gpt-5"):
+            data.pop("max_tokens", None)
+
         async with self.session.post(
             "https://api.openai.com/v1/chat/completions", headers=headers, json=data
         ) as response:
@@ -3483,18 +3487,22 @@ class LLMInterviewEngine:
         """Call OpenAI API with exponential backoff retry logic"""
         for attempt in range(max_retries):
             try:
-                response = openai.chat.completions.create(
-                    model=model,
-                    messages=[
+                # For gpt-5-* models, omit max_tokens which is unsupported
+                kwargs = {
+                    "model": model,
+                    "messages": [
                         {
                             "role": "system",
                             "content": "You are an expert research interviewer conducting emotionally intelligent interviews.",
                         },
                         {"role": "user", "content": prompt},
                     ],
-                    max_tokens=4000,
-                    temperature=0.7,
-                )
+                    "temperature": 0.7,
+                }
+                if not (model and str(model).startswith("gpt-5")):
+                    kwargs["max_tokens"] = 4000
+
+                response = openai.chat.completions.create(**kwargs)
                 return response.choices[0].message.content
 
             except Exception as e:
