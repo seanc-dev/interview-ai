@@ -301,6 +301,29 @@ class TestMasterReportAggregation:
         pass
 
 
+class TestQualityEvaluator:
+    """Tests for LLM-as-judge quality loop (heuristic path)."""
+
+    def test_heuristic_scoring_from_sample(self):
+        from llm_interview_engine import QualityEvaluator
+
+        insight = {
+            "insights": (
+                "Aligned? Yes\n"
+                "Pain Points:\n- Anxiety spikes\n- Shame loops\n"
+                "Desired Outcomes:\n- Calmer days\n- Gentle structure\n"
+                "Micro-feature Suggestions:\n- Soft check-ins\n- Boundary planner\n"
+            )
+        }
+
+        ev = QualityEvaluator()
+        scores = ev.score_insight_heuristic(insight["insights"])
+        assert 0 <= scores["alignment"] <= 1
+        assert scores["pain_points"] > 0
+        assert scores["desired_outcomes"] > 0
+        assert scores["micro_features"] > 0
+
+
 class TestErrorHandling:
     """Test error handling and resilience"""
 
