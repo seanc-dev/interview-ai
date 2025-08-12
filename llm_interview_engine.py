@@ -83,6 +83,7 @@ class ProjectConfig:
     max_tokens: int = 2000
     temperature: float = 0.7
     enable_jsonl_logging: bool = False
+    prompt_variant: Optional[str] = None
 
     def __post_init__(self):
         if self.interview_modes is None:
@@ -152,8 +153,11 @@ class NonDeterministicInterviewer:
         personas = []
 
         for i in range(count):
-            seed = self._generate_seed(cycle_number, i, f"persona_{i}")
-            random.seed(seed)
+            # Diversify seeds to avoid identical draws across small samples
+            seed = self._generate_seed(
+                cycle_number, i + 1, f"persona_{i}_{random.random()}"
+            )
+            rnd = random.Random(seed)
 
             persona = {
                 "age_group": random.choice(
@@ -177,7 +181,7 @@ class NonDeterministicInterviewer:
                         "returning to work",
                     ]
                 ),
-                "emotional_baseline": random.choice(
+                "emotional_baseline": rnd.choice(
                     [
                         "anxious",
                         "depressed",
@@ -189,7 +193,7 @@ class NonDeterministicInterviewer:
                         "exhausted",
                     ]
                 ),
-                "coping_style": random.choice(
+                "coping_style": rnd.choice(
                     [
                         "avoidant",
                         "confrontational",
@@ -199,7 +203,7 @@ class NonDeterministicInterviewer:
                         "reflective",
                     ]
                 ),
-                "readiness_level": random.choice(
+                "readiness_level": rnd.choice(
                     [
                         "resistant",
                         "ambivalent",
@@ -209,7 +213,7 @@ class NonDeterministicInterviewer:
                         "cautious",
                     ]
                 ),
-                "background_factor": random.choice(
+                "background_factor": rnd.choice(
                     [
                         "trauma history",
                         "perfectionism",
@@ -220,7 +224,7 @@ class NonDeterministicInterviewer:
                         "work-life imbalance",
                     ]
                 ),
-                "unique_challenge": random.choice(
+                "unique_challenge": rnd.choice(
                     [
                         "financial stress",
                         "relationship issues",
@@ -1370,13 +1374,10 @@ class AsyncInterviewProcessor:
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        # Handle different parameter names and constraints for different models
+        # Handle parameters for different model families
         if "gpt-5" in model:
-            # GPT-5 models use max_completion_tokens and only support default temperature
-            data["max_completion_tokens"] = (
-                getattr(config, "max_tokens", 2000) if config else 2000
-            )
-            # GPT-5 models don't support custom temperature - only use default
+            # GPT-5 models on chat/completions: omit token/temperature controls
+            pass
         else:
             # Older models use max_tokens and support custom temperature
             data["max_tokens"] = getattr(config, "max_tokens", 2000) if config else 2000
@@ -2110,6 +2111,64 @@ This report was generated without any interview insights. Please run interviews 
             ),
         }
 
+
+class QualityEvaluator:
+    """Evaluates quality of insights and runs using heuristics and optional LLM judge."""
+
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    def score_insight_heuristic(self, insight_text: str) -> Dict[str, float]:
+        text = (insight_text or "").strip()
+        if not text:
+            return {
+                "alignment": 0.0,
+                "pain_points": 0.0,
+                "desired_outcomes": 0.0,
+                "micro_features": 0.0,
+            }
+
+        alignment = (
+            1.0
+            if ("Aligned? Yes" in text or "Aligned: Yes" in text)
+            else (0.5 if "Aligned?" in text else 0.0)
+        )
+        pain_points = 0.0
+        if "Pain Points" in text:
+            start = text.find("Pain Points")
+            chunk = text[start : start + 2000]
+            pain_points = min(1.0, max(0.0, chunk.count("\n-") / 5.0))
+        desired = 0.0
+        if "Desired Outcomes" in text:
+            start = text.find("Desired Outcomes")
+            chunk = text[start : start + 2000]
+            desired = min(1.0, max(0.0, chunk.count("\n-") / 5.0))
+        features = 0.0
+        if "Micro-feature Suggestions" in text:
+            try:
+                section = text.split("Micro-feature Suggestions:", 1)[1]
+                bullets = [
+                    ln for ln in section.split("\n") if ln.strip().startswith("-")
+                ]
+                features = min(1.0, len(bullets) / 3.0)
+            except Exception:
+                features = 0.0
+
+        return {
+            "alignment": alignment,
+            "pain_points": pain_points,
+            "desired_outcomes": desired,
+            "micro_features": features,
+        }
+
+    def aggregate_run_scores(self, insights: List[Dict]) -> Dict[str, Any]:
+        per = [self.score_insight_heuristic(i.get("insights", "")) for i in insights]
+        if not per:
+            return {"overall": 0.0, "dimensions": {}}
+        dims = {k: (sum(s[k] for s in per) / len(per)) for k in per[0].keys()}
+        overall = sum(dims.values()) / len(dims)
+        return {"overall": overall, "dimensions": dims}
+
     async def extract_evolution_signals_async(self, insights: List[Dict]) -> Dict:
         """Extract evolution signals asynchronously."""
         # Use the existing insight analyzer logic
@@ -2555,10 +2614,35 @@ class AsyncIterativeResearchEngine:
         for result in successful_cycles:
             all_insights.extend(result.get("all_insights", []))
 
+        # Persist insights for downstream quality loop / agent use
+        try:
+            import json as _json
+
+            with open(run_dir / "insights.json", "w") as jf:
+                _json.dump(all_insights, jf, indent=2)
+        except Exception:
+            pass
+
         # Generate master report with improvements tracking
         master_report = self._generate_master_report_with_improvements(
             results, all_insights
         )
+
+        # Append Quality Assessment
+        try:
+            quality = QualityEvaluator().aggregate_run_scores(all_insights)
+            qa = quality.get("dimensions", {})
+            quality_section = (
+                "\n## Quality Assessment\n\n"
+                f"- Overall: {quality.get('overall', 0.0):.2f}\n"
+                f"- Alignment: {qa.get('alignment', 0.0):.2f}\n"
+                f"- Pain Points: {qa.get('pain_points', 0.0):.2f}\n"
+                f"- Desired Outcomes: {qa.get('desired_outcomes', 0.0):.2f}\n"
+                f"- Micro-features: {qa.get('micro_features', 0.0):.2f}\n"
+            )
+            master_report += quality_section
+        except Exception:
+            pass
 
         # Generate roadmap for latest config version
         roadmap = self._generate_roadmap_for_latest_config(all_insights)
@@ -3497,10 +3581,10 @@ class LLMInterviewEngine:
                         },
                         {"role": "user", "content": prompt},
                     ],
-                    "temperature": 0.7,
                 }
                 if not (model and str(model).startswith("gpt-5")):
                     kwargs["max_tokens"] = 4000
+                    kwargs["temperature"] = 0.7
 
                 response = openai.chat.completions.create(**kwargs)
                 return response.choices[0].message.content
@@ -3690,21 +3774,10 @@ class LLMInterviewEngine:
                             except IndexError:
                                 pass
 
-                        # Extract micro-features
-                        if "Micro-feature Suggestions:" in insight_text:
-                            try:
-                                features_section = insight_text.split(
-                                    "Micro-feature Suggestions:"
-                                )[1]
-                                micro_features.extend(
-                                    [
-                                        f.strip()
-                                        for f in features_section.split("\n")
-                                        if f.strip() and not f.startswith("-")
-                                    ]
-                                )
-                            except IndexError:
-                                pass
+                    # Extract micro-features
+                    micro_features.extend(
+                        InsightExtractor.extract_micro_features(insight_text)
+                    )
 
                     # Add summary
                     if solution_fits:
@@ -4053,22 +4126,9 @@ class LLMInterviewEngine:
                     roadmap_data["solution_fit_scores"][key]["total"] += 1
 
                     # Extract micro-features
-                    if "Micro-feature Suggestions:" in insight_text:
-                        features_section = insight_text.split(
-                            "Micro-feature Suggestions:"
-                        )[1]
-                        features = []
-                        for line in features_section.split("\n"):
-                            line = line.strip()
-                            # Accept lines that begin with '-' as bullets for features
-                            if line.startswith("-"):
-                                item = line[1:].strip()
-                                if item:
-                                    features.append(item)
-                            elif line and not line.startswith("##"):
-                                # Also accept bare lines until next header or blank
-                                features.append(line)
-                        roadmap_data["micro_features"].extend(features)
+                    roadmap_data["micro_features"].extend(
+                        InsightExtractor.extract_micro_features(insight_text)
+                    )
 
                     # Extract pain points
                     if "Pain Points:" in insight_text:
@@ -4699,25 +4759,44 @@ class InsightExtractor:
     @classmethod
     def extract_pain_points(cls, insight_text: str) -> List[str]:
         """Extract pain points from insight text."""
-        pain_points = []
+        pain_points: List[str] = []
 
-        if "## Pain Points" in insight_text:
+        text = insight_text or ""
+        # Case 1: Header style section
+        if "## Pain Points" in text:
             try:
-                start = insight_text.find("## Pain Points")
-                end = insight_text.find("##", start + 1)
+                start = text.find("## Pain Points")
+                end = text.find("##", start + 1)
                 if end == -1:
-                    end = len(insight_text)
-                pain_section = insight_text[start:end]
+                    end = len(text)
+                pain_section = text[start:end]
+                for line in pain_section.split("\n"):
+                    s = line.strip()
+                    if s.startswith("-") and s[1:].strip():
+                        pain_points.append(s[1:].strip())
+            except Exception:
+                pass
 
-                # Extract lines starting with "-"
-                lines = pain_section.split("\n")
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith("-"):
-                        point = line[1:].strip()  # Remove the dash
-                        if point:
-                            pain_points.append(point)
-            except IndexError:
+        # Case 2: Inline label style (within a single Insights block)
+        if "Pain Points:" in text:
+            try:
+                # Capture from label to next label or header
+                start = text.index("Pain Points:") + len("Pain Points:")
+                # stop at Desired Outcomes or next header
+                candidates = [
+                    text.find("Desired Outcomes:", start),
+                    text.find("##", start),
+                ]
+                stops = [c for c in candidates if c != -1]
+                end = min(stops) if stops else len(text)
+                section = text[start:end]
+                for line in section.split("\n"):
+                    s = line.strip()
+                    if s.startswith("-"):
+                        item = s[1:].strip()
+                        if item:
+                            pain_points.append(item)
+            except Exception:
                 pass
 
         return pain_points
@@ -4725,28 +4804,76 @@ class InsightExtractor:
     @classmethod
     def extract_desired_outcomes(cls, insight_text: str) -> List[str]:
         """Extract desired outcomes from insight text."""
-        outcomes = []
+        outcomes: List[str] = []
 
-        if "## Desired Outcomes" in insight_text:
+        text = insight_text or ""
+        # Case 1: Header style
+        if "## Desired Outcomes" in text:
             try:
-                start = insight_text.find("## Desired Outcomes")
-                end = insight_text.find("##", start + 1)
+                start = text.find("## Desired Outcomes")
+                end = text.find("##", start + 1)
                 if end == -1:
-                    end = len(insight_text)
-                outcomes_section = insight_text[start:end]
+                    end = len(text)
+                section = text[start:end]
+                for line in section.split("\n"):
+                    s = line.strip()
+                    if s.startswith("-") and s[1:].strip():
+                        outcomes.append(s[1:].strip())
+            except Exception:
+                pass
 
-                # Extract lines starting with "-"
-                lines = outcomes_section.split("\n")
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith("-"):
-                        outcome = line[1:].strip()  # Remove the dash
-                        if outcome:
-                            outcomes.append(outcome)
-            except IndexError:
+        # Case 2: Inline label style
+        if "Desired Outcomes:" in text:
+            try:
+                start = text.index("Desired Outcomes:") + len("Desired Outcomes:")
+                candidates = [
+                    text.find("Micro-feature Suggestions:", start),
+                    text.find("##", start),
+                ]
+                stops = [c for c in candidates if c != -1]
+                end = min(stops) if stops else len(text)
+                section = text[start:end]
+                for line in section.split("\n"):
+                    s = line.strip()
+                    if s.startswith("-"):
+                        item = s[1:].strip()
+                        if item:
+                            outcomes.append(item)
+            except Exception:
                 pass
 
         return outcomes
+
+    @classmethod
+    def extract_micro_features(cls, insight_text: str) -> List[str]:
+        """Extract micro-feature suggestions from insight text."""
+        features: List[str] = []
+        text = insight_text or ""
+        # Accept multiple headers for feature suggestions
+        header_labels = [
+            "Micro-feature Suggestions:",
+            "Feature Suggestions:",
+            "Suggestions:",
+        ]
+        label = next((h for h in header_labels if h in text), None)
+        if label:
+            try:
+                start = text.index(label) + len(label)
+                candidates = [text.find("##", start)]
+                stops = [c for c in candidates if c != -1]
+                end = min(stops) if stops else len(text)
+                section = text[start:end]
+                for line in section.split("\n"):
+                    s = line.strip()
+                    if s.startswith("-"):
+                        item = s[1:].strip()
+                        if item:
+                            features.append(item)
+                    elif s and not s.startswith("##"):
+                        features.append(s)
+            except Exception:
+                pass
+        return features
 
     @classmethod
     def process_insight(cls, insight: Dict) -> Dict:
@@ -4759,7 +4886,7 @@ class InsightExtractor:
             "aligned": cls.extract_alignment(insight_text),
             "pain_points": cls.extract_pain_points(insight_text),
             "desired_outcomes": cls.extract_desired_outcomes(insight_text),
-            "micro_features": [],  # Placeholder for future implementation
+            "micro_features": cls.extract_micro_features(insight_text),
         }
 
 
@@ -4886,7 +5013,11 @@ class PromptGenerator:
             "2) Problem exploration\n"
             "3) Desired outcomes & closing\n\n"
             "Return: markdown transcript with explicit speaker labels and a final '## Insights' section including:\n"
-            "- Aligned? Yes/No\n- Pain Points\n- Desired Outcomes\n"
+            "- Aligned? Yes/No\n- Pain Points (bulleted)\n- Desired Outcomes (bulleted)\n- Micro-feature Suggestions (bulleted, 1-3 items)\n\n"
+            "Example (Micro-feature Suggestions):\n"
+            "- Gentle 2-min breathing check-in when stress phrases detected\n"
+            "- Boundary planner: 3 taps to block 30 mins and notify team template\n"
+            "- Debrief prompt after setback: reframe, one-small-next-step\n"
         )
         return prompt
 
@@ -5776,6 +5907,137 @@ class AsyncFocusGroupEngine:
         return report, roadmap
 
 
+class ProjectLoopEngine:
+    """Project loop orchestrator: Problem -> Solution -> (Market) -> Roadmap."""
+
+    def __init__(self, api_key: Optional[str] = None, config_dir: Optional[str] = None):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required")
+        self.config_dir = config_dir or "config/v2/"
+
+    async def run_project_loop_async(self) -> Dict:
+        # 1) Problem Discovery via async engine (one cycle)
+        async_engine = AsyncIterativeResearchEngine(
+            api_key=self.api_key,
+            config_dir=self.config_dir,
+            cycles=1,
+            evolution_enabled=False,
+        )
+        results = await async_engine.run_iterative_research_async()
+
+        # Locate latest run dir
+        cfg = ConfigManager.load_config_from_json(
+            str(Path(self.config_dir) / "ygt_config.json")
+        )
+        project_dir = Path("outputs") / cfg.project_name
+        runs_dir = project_dir / "runs"
+        run_dir = sorted(runs_dir.glob("run_*"))[-1]
+        insights_path = run_dir / "insights.json"
+        import json as _json
+
+        insights = (
+            _json.loads(insights_path.read_text()) if insights_path.exists() else []
+        )
+
+        # Aggregate problems (pain points) and rank
+        evaluator = QualityEvaluator()
+        agg = AsyncInsightAggregator()._aggregate_processed_insights(
+            [InsightExtractor.process_insight(i) for i in insights]
+        )
+        top_pain_points = [p for p, _ in agg.get("common_pain_points", [])]
+        problems_path = run_dir / "problems.json"
+        problems_path.write_text(
+            _json.dumps({"top_pain_points": top_pain_points}, indent=2)
+        )
+
+        # 2) General Insights Synthesis for cross-functional use
+        try:
+            from_text = LLMReportGenerator(api_key=self.api_key)
+            general_prompt_insights = [
+                {
+                    "aligned": InsightExtractor.extract_alignment(i.get("insights", "")),
+                    "pain_points": InsightExtractor.extract_pain_points(i.get("insights", "")),
+                    "desired_outcomes": InsightExtractor.extract_desired_outcomes(i.get("insights", "")),
+                }
+                for i in insights[:10]
+            ]
+            general_report = await from_text.generate_conversational_analysis_async(general_prompt_insights)
+            (run_dir / "general_insights.md").write_text(general_report)
+        except Exception:
+            pass
+
+        # 3) Solution Synthesis (solutions from insights)
+        sol = await LLMRoadmapGenerator(
+            api_key=self.api_key
+        ).synthesize_features_from_insights_async(insights)
+        solutions = sol.get("features", [])
+        (run_dir / "solutions.json").write_text(_json.dumps(sol, indent=2))
+
+        # 4) Hypothesis evolution: create refined hypotheses list (promote top problems & solutions)
+        evolved_hypotheses = [
+            ProblemHypothesis(label=p[:60], description=f"Promoted problem: {p}") for p in top_pain_points[:3]
+        ]
+        evolved_hypotheses += [
+            ProblemHypothesis(label=s[:60], description=f"Proposed solution: {s}") for s in solutions[:3]
+        ]
+        (run_dir / "evolved_hypotheses.json").write_text(
+            _json.dumps([{"label": h.label, "description": h.description} for h in evolved_hypotheses], indent=2)
+        )
+
+        # 5) Validation: create a temporary config mapping solutions as hypotheses and rerun small set
+        try:
+            temp_cfg = ConfigManager.load_config_from_json(
+                str(Path(self.config_dir) / "ygt_config.json")
+            )
+            # Replace first mode's hypotheses with solution labels for a light validation pass
+            if temp_cfg.interview_modes and solutions:
+                temp_cfg.interview_modes[0].problem_hypotheses = [
+                    ProblemHypothesis(
+                        label=s[:60], description=f"Validate solution idea: {s}"
+                    )
+                    for s in solutions[:3]
+                ]
+                temp_cfg.interview_modes[0].persona_count = max(
+                    1, min(2, temp_cfg.interview_modes[0].persona_count)
+                )
+            # Save temp config under run_dir and run interviews in legacy engine
+            temp_cfg_path = run_dir / "validation_config.json"
+            ConfigManager.save_config_to_json(temp_cfg, str(temp_cfg_path))
+            # Run legacy engine once with validation config
+            base = LLMInterviewEngine(api_key=self.api_key)
+            cfg_obj = base._dict_to_config(_json.loads(temp_cfg_path.read_text()))
+            base._run_interviews(cfg_obj)
+        except Exception:
+            pass
+
+        # 6) Market Context (optional): generate market-aware roadmap addendum
+        try:
+            market_addendum = await LLMRoadmapGenerator(
+                api_key=self.api_key
+            ).consider_business_context_async(
+                insights, business_context="initial exploration"
+            )
+            (run_dir / "market.md").write_text(market_addendum)
+        except Exception:
+            pass
+
+        # 7) Roadmap: generate prioritized roadmap from insights (existing)
+        try:
+            roadmap = await LLMRoadmapGenerator(
+                api_key=self.api_key
+            ).generate_actionable_roadmap_async(insights)
+            (run_dir / "roadmap_actionable.md").write_text(roadmap)
+        except Exception:
+            pass
+
+        return {
+            "run_dir": str(run_dir),
+            "problems": top_pain_points,
+            "solutions": solutions,
+        }
+
+
 class AsyncSolutionDiscoveryEngine:
     """Guides solution discovery from insights: concepts, MVP, validation."""
 
@@ -6022,6 +6284,21 @@ def main():
             action="store_true",
             help="Enable JSONL request/response logging for this run (writes requests.jsonl).",
         )
+        parser.add_argument(
+            "--quality",
+            action="store_true",
+            help="Run quality assessment only on latest run (no interviews)",
+        )
+        parser.add_argument(
+            "--agent",
+            action="store_true",
+            help="Emit machine-readable artifacts for agentic loops (insights.json, quality.json)",
+        )
+        parser.add_argument(
+            "--project-loop",
+            action="store_true",
+            help="Run Problem -> Solution -> (Market) -> Roadmap loop",
+        )
         args = parser.parse_args()
 
         # Check if we should run iterative research mode
@@ -6046,7 +6323,7 @@ def main():
                 )
             )
             print("✅ Solution discovery completed")
-        elif args.metrics_summary:
+        elif bool(getattr(args, "metrics_summary", False)) is True:
             # Find latest run dir and print metrics summary
             default_project = "YGT"
             project_name = default_project
@@ -6103,7 +6380,50 @@ def main():
             print("Modes:")
             for m, n in modes.items():
                 print(f" - {m}: {n}")
-        elif args.config_dir:
+        elif isinstance(getattr(args, "quality", False), bool) and getattr(
+            args, "quality", False
+        ):
+            # Compute quality on latest run's insights
+            default_project = "YGT"
+            project_name = default_project
+            if args.config_dir:
+                try:
+                    cfg = ConfigManager.load_config_from_json(
+                        str(Path(args.config_dir) / "ygt_config.json")
+                    )
+                    project_name = cfg.project_name
+                except Exception:
+                    project_name = Path(args.config_dir).name or default_project
+            runs_dir = Path("outputs") / project_name / "runs"
+            run_dirs = sorted(runs_dir.glob("run_*"))
+            if not run_dirs:
+                print("No run directories found.")
+                return
+            latest = run_dirs[-1]
+            import json as _json
+
+            insights_path = latest / "insights.json"
+            if not insights_path.exists():
+                print("No insights.json found. Run interviews first.")
+                return
+            insights = _json.loads(insights_path.read_text())
+            quality = QualityEvaluator().aggregate_run_scores(insights)
+            quality_path = latest / "quality.json"
+            quality_path.write_text(_json.dumps(quality, indent=2))
+            print(f"Quality written: {quality_path}")
+        elif isinstance(getattr(args, "project_loop", False), bool) and getattr(
+            args, "project_loop", False
+        ):
+            print(
+                "🔁 Starting Project Loop: Problem -> Solution -> (Market) -> Roadmap"
+            )
+            out = asyncio.run(
+                ProjectLoopEngine(
+                    api_key=args.api_key, config_dir=args.config_dir or "config/v2/"
+                ).run_project_loop_async()
+            )
+            print(f"Project loop completed: {out}")
+        elif getattr(args, "config_dir", None):
             print("🚀 Starting Async Iterative Research Mode")
             engine = AsyncIterativeResearchEngine(
                 api_key=args.api_key,
@@ -6111,11 +6431,39 @@ def main():
                 cycles=args.cycles,
                 evolution_enabled=args.evolution_enabled,
             )
-            if args.set_jsonl_logging:
+            if getattr(args, "set_jsonl_logging", False):
                 # enable JSONL logging for this run
                 engine.current_config.enable_jsonl_logging = True
             results = asyncio.run(engine.run_iterative_research_async())
             print(f"\n✅ Async iterative research completed with {len(results)} cycles")
+            # Compute quality on latest run's insights
+            default_project = "YGT"
+            project_name = default_project
+            if args.config_dir:
+                try:
+                    cfg = ConfigManager.load_config_from_json(
+                        str(Path(args.config_dir) / "ygt_config.json")
+                    )
+                    project_name = cfg.project_name
+                except Exception:
+                    project_name = Path(args.config_dir).name or default_project
+            runs_dir = Path("outputs") / project_name / "runs"
+            run_dirs = sorted(runs_dir.glob("run_*"))
+            if not run_dirs:
+                print("No run directories found.")
+                return
+            latest = run_dirs[-1]
+            import json as _json
+
+            insights_path = latest / "insights.json"
+            if not insights_path.exists():
+                print("No insights.json found. Run interviews first.")
+                return
+            insights = _json.loads(insights_path.read_text())
+            quality = QualityEvaluator().aggregate_run_scores(insights)
+            quality_path = latest / "quality.json"
+            quality_path.write_text(_json.dumps(quality, indent=2))
+            print(f"Quality written: {quality_path}")
         else:
             # Initialize the standard engine
             engine = LLMInterviewEngine(
