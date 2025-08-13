@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- **Aligned?** Yes\n## Key Insights\n- **Pain Points:**\n  - Overwhelmed by perfectionism leading to heightened anxiety.\n  - Financial stress causing constant worry about future stability.\n  - Difficulty managing time effectively, leading to work-life imbalance.\n  - Avoiding tasks or responsibilities due to fear of not meeting expectations.\n- **Desired Outcomes:**\n  - Develop healthier coping strategies to manage stress and anxiety.\n  - Achieve a better balance between work and personal life.\n  - Gain confidence in handling financial responsibilities without stress.\n  - Create a structured routine that accommodates both work and self-care.\n- **Micro-feature Suggestions:**\n  - Daily goal-setting tool that prioritizes tasks based on their impact on well-being.\n  - Financial wellness tracker with tips for managing funds and reducing stress.\n  - Time management planner with prompts for scheduling breaks and self-care activities.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:14:08.783208",
+      "finished_at": "2025-08-13T13:14:12.317288",
+      "duration_s": 3.53408,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- Persona 1 is navigating a challenging phase of life, grappling with career uncertainty and burnout.\n- They express a need for practical tools and strategies to effectively manage stress.\n## Pain Points\n- Difficulty in recognizing and addressing stress triggers.\n- Feelings of overwhelm due to career uncertainty and perfectionism.\n- Lack of structured support for building healthy habits.\n- Struggling to find time for self-care amidst daily responsibilities.\n## Desired Outcomes\n- Develop a clear understanding of stress triggers and effective coping mechanisms.\n- Establish a routine that incorporates stress management practices.\n- Gain confidence in decision-making related to career and personal life.\n- Create a supportive environment that encourages self-reflection and growth.\n## Micro-feature Suggestions\n- Stress trigger journal: A feature to log stress events and feelings for pattern recognition.\n- Habit tracker: Simple check-in system to encourage daily self-care activities.\n- Decision-making guide: A structured framework for evaluating career choices and next steps.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:14:08.783628",
+      "finished_at": "2025-08-13T13:14:15.087167",
+      "duration_s": 6.303539,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

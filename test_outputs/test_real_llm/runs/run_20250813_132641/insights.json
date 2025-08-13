@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Difficulty managing daily stress due to work and personal life pressures.\n- Feelings of inadequacy stemming from imposter syndrome, leading to heightened anxiety.\n- Struggles with maintaining healthy relationships, often feeling isolated.\n- Limited coping strategies that feel effective or sustainable.\n### Desired Outcomes\n- Improved ability to manage and reduce daily stress levels.\n- Enhanced self-esteem and self-acceptance to counteract imposter syndrome.\n- Better communication and connection in personal relationships.\n- Development of consistent, healthy coping mechanisms for stress relief.\n### Micro-feature Suggestions\n- Daily check-in feature to log stress levels and reflect on triggers.\n- Personal growth journal with prompts for self-affirmation and relationship insights.\n- Quick access to guided meditation or breathing exercises, especially during high-stress moments.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:26:41.775318",
+      "finished_at": "2025-08-13T13:26:44.822230",
+      "duration_s": 3.046912,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- **Pain Points:**\n  - Persistent feelings of exhaustion and overwhelm from work and personal life\n  - Difficulty in establishing and maintaining social connections, leading to isolation\n  - Imposter syndrome affecting self-esteem and decision-making\n  - Lack of effective tools to manage stress in real-time during challenging moments\n- **Desired Outcomes:**\n  - Develop a more balanced approach to work and personal life, reducing feelings of overwhelm\n  - Increase social engagement and build a supportive network\n  - Enhance self-confidence and reduce feelings of imposter syndrome\n  - Access to practical, on-demand tools for immediate stress relief\n- **Micro-feature Suggestions:**\n  - Quick access button for mindfulness exercises (e.g., guided imagery or breathing techniques) during stressful moments\n  - Community feature to connect with others for support or shared experiences in a safe environment\n  - Daily reflection prompts focused on gratitude and accomplishments to combat imposter syndrome and foster self-compassion\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:26:41.775740",
+      "finished_at": "2025-08-13T13:26:45.285923",
+      "duration_s": 3.510183,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- Persona 0 feels a deep sense of overwhelm and internalized shame, particularly related to their professional identity and personal relationships. They struggle with imposter syndrome and find themselves avoiding both work and social situations, which exacerbates their emotional state.\n## Pain Points\n- Feelings of inadequacy and self-doubt due to imposter syndrome.\n- Overwhelmed by relationship issues, leading to avoidance behaviors.\n- Difficulty managing emotions, often feeling emotionally overloaded.\n- Internalized guilt and self-shaming after setbacks or perceived failures.\n## Desired Outcomes\n- Develop a more stable emotional baseline and reduce feelings of overwhelm.\n- Improve self-acceptance and reduce self-shaming tendencies.\n- Enhance coping strategies to address imposter syndrome and relationship challenges.\n- Create a supportive routine that encourages gradual engagement with work and relationships.\n## Micro-feature Suggestions\n- Gentle emotional check-in prompts that guide reflection on feelings and provide validation.\n- A daily journaling tool to externalize thoughts and track emotional patterns.\n- Soft nudges to encourage small steps toward reconnecting with work or relationships, framed positively.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:26:51.742440",
+      "finished_at": "2025-08-13T13:26:55.780259",
+      "duration_s": 4.037819,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "hypotheses": {
+    "Stress Management": {
+      "count": 2,
+      "aligned": 2,
+      "misaligned": 0
+    }
+  },
+  "promote": [
+    "Stress Management"
+  ],
+  "retire": []
+}

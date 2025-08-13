@@ -25,6 +25,136 @@ from contextlib import nullcontext
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "HypothesisStateTracker",
+    "CrossFunctionalSynthesizer",
+    "QualityGateReprompter",
+    "QualityEvaluator",
+]
+
+
+class HypothesisStateTracker:
+    """Aggregates per-hypothesis stats and decides promote/retire lists.
+
+    Exposed API kept minimal for unit tests.
+    """
+
+    def __init__(
+        self,
+        alignment_threshold: float = 0.6,
+        min_frequency: int = 2,
+        retire_threshold: float = 0.75,
+    ) -> None:
+        self.alignment_threshold = alignment_threshold
+        self.min_frequency = min_frequency
+        self.retire_threshold = retire_threshold
+
+    def summarize(self, insights: List[Dict]) -> Dict[str, Any]:
+        stats: Dict[str, Dict[str, int]] = {}
+        for i in insights or []:
+            hyp = i.get("hypothesis") or i.get("hypothesis_label") or "Unknown"
+            text = i.get("insights", "")
+            aligned = 1 if ("Aligned? Yes" in text or "Aligned: Yes" in text) else 0
+            entry = stats.setdefault(hyp, {"count": 0, "aligned": 0, "misaligned": 0})
+            entry["count"] += 1
+            if aligned:
+                entry["aligned"] += 1
+            else:
+                entry["misaligned"] += 1
+
+        promote: List[str] = []
+        retire: List[str] = []
+
+        for hyp, v in stats.items():
+            count = max(1, v["count"])  # avoid div zero
+            align_ratio = v["aligned"] / count
+            mis_ratio = v["misaligned"] / count
+            if (
+                v["count"] >= self.min_frequency
+                and align_ratio >= self.alignment_threshold
+            ):
+                promote.append(hyp)
+            if v["count"] <= self.min_frequency and mis_ratio >= self.retire_threshold:
+                retire.append(hyp)
+
+        return {"hypotheses": stats, "promote": promote, "retire": retire}
+
+    def write_state(self, summary: Dict[str, Any], path: Path) -> None:
+        path.write_text(json.dumps(summary, indent=2))
+
+
+class CrossFunctionalSynthesizer:
+    """Produces cross-functional synthesis and Markdown section."""
+
+    def synthesize(self, insights: List[Dict]) -> Dict[str, List[str]]:
+        # Very light heuristic; LLM-backed extension can be added later.
+        points: List[str] = []
+        for i in insights or []:
+            text = i.get("insights", "")
+            for line in text.splitlines():
+                if line.strip().startswith("-"):
+                    points.append(line.strip("- ").strip())
+        # Simple bucketing for MVP
+        return {
+            "marketing": points[:3],
+            "sales": points[3:6],
+            "strategy": points[6:9],
+            "gtm": points[9:12],
+        }
+
+    def to_markdown_section(self, structured: Dict[str, List[str]]) -> str:
+        def bullets(items: List[str]) -> str:
+            return "\n".join(f"  - {it}" for it in (items or [])[:5])
+
+        return (
+            "\n## Cross-Functional Insights\n\n"
+            f"- Marketing:\n{bullets(structured.get('marketing'))}\n"
+            f"- Sales:\n{bullets(structured.get('sales'))}\n"
+            f"- Strategy:\n{bullets(structured.get('strategy'))}\n"
+            f"- GTM:\n{bullets(structured.get('gtm'))}\n"
+        )
+
+
+class QualityGateReprompter:
+    """Selects low-quality insights and builds targeted reprompts.
+
+    Uses existing QualityEvaluator and minimal prompt templating.
+    """
+
+    def __init__(
+        self,
+        evaluator: "QualityEvaluator",
+        thresholds: Optional[Dict[str, float]] = None,
+    ) -> None:
+        self.evaluator = evaluator
+        self.thresholds = thresholds or {
+            "alignment": 0.6,
+            "pain_points": 0.3,
+            "desired_outcomes": 0.3,
+        }
+
+    def select_candidates(self, insights: List[Dict]) -> List[Dict]:
+        results: List[Dict] = []
+        for i in insights or []:
+            scores = self.evaluator.score_insight_heuristic(i.get("insights", ""))
+            if any(scores.get(dim, 0.0) < thr for dim, thr in self.thresholds.items()):
+                results.append(i)
+        return results
+
+    def build_reprompt(self, insight: Dict) -> str:
+        hyp = insight.get("hypothesis") or "(unknown)"
+        original = insight.get("insights", "")
+        return (
+            "Please improve the interview output with clearer structure.\n"
+            f"Hypothesis: {hyp}\n"
+            "Requirements:\n"
+            "- Ensure an explicit 'Aligned? Yes/No' line.\n"
+            "- Provide at least 3 'Pain Points' bullets.\n"
+            "- Provide at least 2 'Desired Outcomes' bullets.\n"
+            "- Add 1-3 'Micro-feature Suggestions' bullets.\n\n"
+            "Original output to refine:\n" + original
+        )
+
 
 @dataclass
 class ProblemHypothesis:
@@ -2128,11 +2258,14 @@ class QualityEvaluator:
                 "micro_features": 0.0,
             }
 
-        alignment = (
-            1.0
-            if ("Aligned? Yes" in text or "Aligned: Yes" in text)
-            else (0.5 if "Aligned?" in text else 0.0)
-        )
+        if ("Aligned? Yes" in text) or ("Aligned: Yes" in text):
+            alignment = 1.0
+        elif ("Aligned? No" in text) or ("Aligned: No" in text):
+            alignment = 0.0
+        elif "Aligned?" in text or "Aligned:" in text:
+            alignment = 0.5
+        else:
+            alignment = 0.0
         pain_points = 0.0
         if "Pain Points" in text:
             start = text.find("Pain Points")
@@ -2627,6 +2760,34 @@ class AsyncIterativeResearchEngine:
         master_report = self._generate_master_report_with_improvements(
             results, all_insights
         )
+
+        # Cross-functional general insights (Marketing/Sales/Strategy/GTM)
+        try:
+            synthesizer = CrossFunctionalSynthesizer()
+            structured = synthesizer.synthesize(all_insights)
+            section = synthesizer.to_markdown_section(structured)
+            # Persist structured and markdown
+            (run_dir / "general_insights.json").write_text(
+                json.dumps(structured, indent=2)
+            )
+            (run_dir / "general_insights.md").write_text(section)
+            # Append section to master report
+            master_report += section
+        except Exception:
+            pass
+
+        # Hypothesis iteration state (promote/retire)
+        try:
+            tracker = HypothesisStateTracker()
+            state = tracker.summarize(all_insights)
+            tracker.write_state(state, run_dir / "hypotheses_state.json")
+            master_report += (
+                "\n## Hypothesis Iteration\n\n"
+                f"- Promote: {', '.join(state.get('promote', [])) or '—'}\n"
+                f"- Retire: {', '.join(state.get('retire', [])) or '—'}\n"
+            )
+        except Exception:
+            pass
 
         # Append Quality Assessment
         try:
@@ -5956,13 +6117,21 @@ class ProjectLoopEngine:
             from_text = LLMReportGenerator(api_key=self.api_key)
             general_prompt_insights = [
                 {
-                    "aligned": InsightExtractor.extract_alignment(i.get("insights", "")),
-                    "pain_points": InsightExtractor.extract_pain_points(i.get("insights", "")),
-                    "desired_outcomes": InsightExtractor.extract_desired_outcomes(i.get("insights", "")),
+                    "aligned": InsightExtractor.extract_alignment(
+                        i.get("insights", "")
+                    ),
+                    "pain_points": InsightExtractor.extract_pain_points(
+                        i.get("insights", "")
+                    ),
+                    "desired_outcomes": InsightExtractor.extract_desired_outcomes(
+                        i.get("insights", "")
+                    ),
                 }
                 for i in insights[:10]
             ]
-            general_report = await from_text.generate_conversational_analysis_async(general_prompt_insights)
+            general_report = await from_text.generate_conversational_analysis_async(
+                general_prompt_insights
+            )
             (run_dir / "general_insights.md").write_text(general_report)
         except Exception:
             pass
@@ -5976,13 +6145,21 @@ class ProjectLoopEngine:
 
         # 4) Hypothesis evolution: create refined hypotheses list (promote top problems & solutions)
         evolved_hypotheses = [
-            ProblemHypothesis(label=p[:60], description=f"Promoted problem: {p}") for p in top_pain_points[:3]
+            ProblemHypothesis(label=p[:60], description=f"Promoted problem: {p}")
+            for p in top_pain_points[:3]
         ]
         evolved_hypotheses += [
-            ProblemHypothesis(label=s[:60], description=f"Proposed solution: {s}") for s in solutions[:3]
+            ProblemHypothesis(label=s[:60], description=f"Proposed solution: {s}")
+            for s in solutions[:3]
         ]
         (run_dir / "evolved_hypotheses.json").write_text(
-            _json.dumps([{"label": h.label, "description": h.description} for h in evolved_hypotheses], indent=2)
+            _json.dumps(
+                [
+                    {"label": h.label, "description": h.description}
+                    for h in evolved_hypotheses
+                ],
+                indent=2,
+            )
         )
 
         # 5) Validation: create a temporary config mapping solutions as hypotheses and rerun small set

@@ -1,0 +1,29 @@
+{
+  "project": "YGT",
+  "run_timestamp": "20250812_192823",
+  "cycles": [
+    {
+      "cycle_number": 1,
+      "success": true,
+      "alignment_rate": 0.0,
+      "duration": 4.601499,
+      "personas_generated": 1,
+      "config_evolved": false,
+      "config_version": "v1",
+      "interviews": [
+        {
+          "success": true,
+          "mode": "Recovery",
+          "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+          "persona_variant": 0,
+          "metrics": {
+            "started_at": "2025-08-12T19:28:23.465023",
+            "finished_at": "2025-08-12T19:28:27.761964",
+            "duration_s": 4.296941,
+            "model": "gpt-4o-mini"
+          }
+        }
+      ]
+    }
+  ]
+}

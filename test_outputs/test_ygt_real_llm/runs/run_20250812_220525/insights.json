@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n**Pain Points:**\n- Struggles with feelings of inadequacy and imposter syndrome, leading to self-doubt.\n- Experiences emotional overwhelm when facing work-related tasks or challenges.\n- Feels disconnected from personal values and identity amidst career uncertainty.\n- Has difficulty setting boundaries, leading to work-life imbalance and burnout.\n- Internalizes setbacks as personal failures, contributing to a cycle of shame and anxiety.\n**Desired Outcomes:**\n- Achieve a better work-life balance that allows for personal time and rejuvenation.\n- Develop a clearer sense of identity and purpose in their career.\n- Learn to externalize guilt and reframe setbacks in a more positive light.\n- Build resilience and coping strategies to manage emotional overload.\n- Feel validated and supported in their experiences without judgment.\n**Micro-feature Suggestions:**\n- Daily emotional check-in with guided prompts to reflect on feelings and thoughts.\n- A reframe tool that offers supportive language and alternative perspectives after setbacks.\n- Boundary-setting reminders that allow for scheduled breaks and personal time notifications.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:05:25.420241",
+      "finished_at": "2025-08-12T22:05:32.407756",
+      "duration_s": 6.987515,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

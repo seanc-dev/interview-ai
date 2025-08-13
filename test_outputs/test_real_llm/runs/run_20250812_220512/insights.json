@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Difficulty in balancing work and personal life leading to increased stress.\n- Feelings of anxiety due to career uncertainty and pressure to perform perfectly.\n- Lack of effective time management strategies contributing to a sense of overwhelm.\n- Minimal existing tools or resources for coping with stress on a daily basis.\n### Desired Outcomes\n- A clearer work-life balance that allows for personal time and reduces stress.\n- Improved coping mechanisms to manage daily stress effectively.\n- Enhanced time management skills to feel more in control and less overwhelmed.\n- A supportive community or access to resources that provide guidance on stress management.\n### Micro-feature Suggestions\n- A daily check-in feature that prompts users to reflect on their stress levels and coping strategies.\n- A personalized stress management toolkit with tips and exercises tailored to their specific challenges.\n- A scheduling assistant that suggests optimal times for breaks or self-care activities based on the user\u2019s calendar.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:05:13.134323",
+      "finished_at": "2025-08-12T22:05:16.681463",
+      "duration_s": 3.54714,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n**Pain Points:**\n- Overwhelming feelings of stress and anxiety due to work and personal responsibilities.\n- Difficulty in setting boundaries, leading to people-pleasing behavior.\n- Time management struggles resulting in constant exhaustion and burnout.\n**Desired Outcomes:**\n- A clearer sense of identity and prioritization of personal needs.\n- Improved ability to manage stress and anxiety through practical tools.\n- More effective time management to allow for self-care and personal growth.\n**Micro-feature Suggestions:**\n- Quick stress assessment tool to identify current stress levels and suggest immediate coping strategies.\n- Personalized daily reflection prompts to help clarify identity and priorities.\n- A scheduling feature that suggests self-care blocks amidst work commitments, with reminders to encourage adherence.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:05:13.134665",
+      "finished_at": "2025-08-12T22:05:16.201120",
+      "duration_s": 3.066455,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

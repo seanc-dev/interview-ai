@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment:  \n**Aligned?** Yes  \n## Key Insights:  \n### Pain Points:\n- Overwhelmed by the demands of academic and personal life.\n- Difficulty setting boundaries with others leading to people-pleasing behavior.\n- Limited social connections contributing to feelings of isolation.\n- Struggles with time management, leading to increased stress.\n- Past trauma impacts current stress management and coping strategies.\n### Desired Outcomes:\n- Develop effective time management skills to balance responsibilities.\n- Establish healthier boundaries to reduce people-pleasing tendencies.\n- Build a support network to combat feelings of isolation.\n- Gain access to practical stress management tools and resources.\n- Improve overall emotional well-being and resilience.\n### Micro-feature Suggestions:\n- A personalized time management planner integrated into the app.\n- A boundary-setting guide with scenarios and role-playing exercises.\n- A community feature for connecting with others facing similar challenges.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:51:21.984067",
+      "finished_at": "2025-08-12T19:51:25.448075",
+      "duration_s": 3.464008,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n### Pain Points\n- Struggles with perfectionism leading to increased stress.\n- Difficulty maintaining work-life balance due to career uncertainty.\n- Emotional exhaustion from juggling personal relationships and professional expectations.\n### Desired Outcomes\n- Develop healthier coping mechanisms for stress.\n- Attain a clearer sense of career direction and confidence.\n- Establish boundaries to improve work-life balance.\n### Micro-feature Suggestions\n- Daily mood tracking with prompts for self-reflection.\n- Guided meditations focused on stress relief and self-acceptance.\n- Community forums for sharing experiences and coping strategies.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:51:21.984283",
+      "finished_at": "2025-08-12T19:51:24.604458",
+      "duration_s": 2.620175,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

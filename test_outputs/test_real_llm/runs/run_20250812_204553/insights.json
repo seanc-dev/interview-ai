@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n- **Pain Points:**\n  - Overwhelming caregiver responsibilities leading to emotional exhaustion.\n  - Difficulty finding time for self-care amidst relationship and work obligations.\n  - Feelings of inadequacy due to imposter syndrome in professional and personal life.\n  - Financial stress causing anxiety and limiting access to wellness resources.\n- **Desired Outcomes:**\n  - Establishing a consistent self-care routine that fits within daily life.\n  - Developing effective stress management techniques that can be easily implemented.\n  - Building confidence and resilience to address feelings of inadequacy.\n  - Finding community support and resources that alleviate financial pressures.\n- **Micro-feature Suggestions:**\n  - Daily self-care reminder notifications tailored to user preferences.\n  - A budgeting tool that integrates wellness resources within financial constraints.\n  - Community forums or support groups focused on caregiver challenges and shared experiences.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:45:54.236135",
+      "finished_at": "2025-08-12T20:45:57.729009",
+      "duration_s": 3.492874,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Constant feelings of exhaustion and overwhelm.\n- Difficulty managing daily stress due to trauma history.\n- Career uncertainty leading to identity crisis.\n- Avoidant coping mechanisms preventing proactive engagement with stress management.\n- Lack of effective tools and strategies for daily coping.\n### Desired Outcomes\n- Develop a consistent daily routine that incorporates stress management.\n- Build resilience against stressors related to career and personal life.\n- Gain clarity about personal identity and direction in life.\n- Establish a supportive community or network for sharing experiences and strategies.\n- Access to practical tools that promote mindfulness and self-care.\n### Micro-feature Suggestions\n- Daily check-in feature to reflect on emotions and stress levels.\n- Guided mindfulness exercises tailored to trauma-aware practices.\n- Social support feature that allows users to connect with others facing similar challenges.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:45:54.236335",
+      "finished_at": "2025-08-12T20:45:57.397176",
+      "duration_s": 3.160841,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

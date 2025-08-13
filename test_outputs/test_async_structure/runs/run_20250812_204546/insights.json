@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\nAligned? Yes\n## Key Insights\n- User finds stress management tools helpful\n- Daily check-ins are valuable\n- Would like more personalized recommendations\n## Pain Points\n- Too many notifications\n- App feels overwhelming at times\n- Needs better progress tracking\n## Desired Outcomes\n- Simpler interface\n- More actionable advice\n- Better integration with daily routine\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:45:46.900390",
+      "finished_at": "2025-08-12T20:45:46.900472",
+      "duration_s": 8.2e-05,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\nAligned? Yes\n## Key Insights\n- User finds stress management tools helpful\n- Daily check-ins are valuable\n- Would like more personalized recommendations\n## Pain Points\n- Too many notifications\n- App feels overwhelming at times\n- Needs better progress tracking\n## Desired Outcomes\n- Simpler interface\n- More actionable advice\n- Better integration with daily routine\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:45:46.900487",
+      "finished_at": "2025-08-12T20:45:46.900530",
+      "duration_s": 4.3e-05,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

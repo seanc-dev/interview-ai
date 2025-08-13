@@ -1,4 +1,4 @@
-# LLM Interview Engine
+### LLM Interview Engine
 
 A robust, interactive CLI tool for running LLM-to-LLM research interviews to evaluate problem/solution hypotheses for emotionally intelligent coaching products. The engine focuses on fidelity, contrast, and cumulative insight through structured persona generation and interview simulation.
 
@@ -105,7 +105,7 @@ config/
 │   └── design_log.md              # Design evolution log
 └── ...
 
-outputs/
+outputs/ (ephemeral; safe to delete)
 ├── v1/
 │   └── ProjectName/
 │       ├── master_report.md        # Cumulative analysis with resonance
@@ -427,11 +427,15 @@ The engine includes robust error handling:
 # Run all tests
 pytest
 
-# Run specific test categories
-pytest test_iterative_research_engine.py::TestIterativeResearchEngine
-pytest test_iterative_research_engine.py::TestProductEvolutionEngine
-pytest test_iterative_research_engine.py::TestNonDeterministicInterviewer
+# Run tagged subsets
+pytest -m 'hypothesis_iteration or cross_insights or quality_gate'
 ```
+
+## Package Layout (refactor-in-progress)
+
+- `interview_ai/`: Package with datamodel, quality, synthesis modules; re-exports engine classes during refactor
+- `llm_interview_engine.py`: Legacy monolith to be split into modules over time
+- `tests/`: All tests moved here
 
 ### Test Structure
 

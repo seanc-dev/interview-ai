@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n- Persona 0 is in a challenging career transition, feeling overwhelmed and struggling with perfectionism and social isolation.\n- The persona expresses a desire for support that is validating and non-judgmental, which reflects the core mission of YGT.\n## Pain Points\n- Intense feelings of overwhelm and anxiety about returning to work.\n- Difficulty managing time and perfectionism, leading to self-shaming and guilt over perceived failures.\n- Social isolation exacerbating feelings of depression and making it harder to seek support.\n- Fear of judgment from others, which contributes to reluctance in sharing struggles.\n## Desired Outcomes\n- A sense of emotional stability and reduced feelings of overwhelm.\n- Improved time management skills that feel manageable, not pressure-filled.\n- Enhanced connections with others to combat social isolation.\n- Ability to reframe setbacks as learning opportunities rather than failures.\n## Micro-feature Suggestions\n- Gentle reminders for self-compassion when perfectionism triggers negative self-talk.\n- Social connection prompts: a nudge to reach out to a friend or colleague with a simple message.\n- Daily reflection prompts focused on identifying one small win, no matter how minor, to build positivity.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:59:50.322176",
+      "finished_at": "2025-08-12T22:59:56.575546",
+      "duration_s": 6.25337,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Difficulty in managing daily stress due to career transition and relationship issues.\n- Feelings of social isolation exacerbated by people-pleasing tendencies.\n- Overwhelmed by caregiving responsibilities, leading to avoidance coping mechanisms.\n### Desired Outcomes\n- Improved ability to manage stress effectively and build resilience.\n- Enhanced social connections to combat feelings of isolation.\n- Tools to facilitate healthier coping mechanisms instead of avoidance.\n### Micro-feature Suggestions\n- A daily check-in feature that prompts users to reflect on their stress levels and coping strategies.\n- Community forums for users to share experiences, advice, and support, fostering connection.\n- Interactive exercises or guided sessions focused on relationship-building and self-assertion to assist with people-pleasing tendencies.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:53:59.727637",
+      "finished_at": "2025-08-12T19:54:02.910992",
+      "duration_s": 3.183355,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Constant feeling of being overwhelmed due to work and personal life balance.\n- History of trauma affects current coping mechanisms and stress levels.\n- Struggles with time management, leading to procrastination and avoidance.\n- Imposter syndrome creates self-doubt and anxiety about performance.\n- Financial stress adds to the feeling of being trapped.\n### Desired Outcomes\n- Develop effective daily routines that promote relaxation and mindfulness.\n- Gain tools and resources to manage stress in real-time.\n- Build confidence to confront and manage feelings of imposter syndrome.\n- Establish a support network for accountability and encouragement.\n- Create a better work-life balance to alleviate feelings of exhaustion.\n### Micro-feature Suggestions\n- Daily guided mindfulness exercises tailored to individual stress triggers.\n- A journaling feature for reflecting on stressors and managing emotions.\n- A budgeting tool integrated with stress management resources to address financial anxiety.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:53:59.727828",
+      "finished_at": "2025-08-12T19:54:04.078879",
+      "duration_s": 4.351051,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

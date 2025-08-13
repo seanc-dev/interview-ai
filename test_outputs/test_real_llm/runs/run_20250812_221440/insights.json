@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- Persona 0 feels overwhelmed by their daily responsibilities while managing burnout and relationship issues. They express a desire for tools that can help them handle their stress more effectively, particularly in their professional life.\n## Pain Points\n- Difficulty managing time due to perfectionism\n- Feelings of exhaustion and burnout impacting personal and professional life\n- Lack of effective coping mechanisms for daily stress\n- Struggles with maintaining boundaries in work and personal relationships\n## Desired Outcomes\n- Development of healthier daily habits to reduce stress\n- Improved time management skills to balance work and personal life\n- Effective coping strategies that can be easily integrated into daily routines\n- Enhanced ability to set and maintain boundaries with others\n## Micro-feature Suggestions\n- Daily habit tracker for stress management techniques, with reminders and progress visuals\n- A quick \u2018stress check-in\u2019 feature that prompts users to reflect on their current stress level and suggests tailored coping strategies\n- Boundary-setting planner that helps users identify and communicate their limits with colleagues and loved ones\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:14:40.446811",
+      "finished_at": "2025-08-12T22:14:45.391575",
+      "duration_s": 4.944764,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n### Pain Points\n- Difficulty managing time effectively, leading to increased stress.\n- Feelings of overwhelm due to competing responsibilities (work, studies, personal life).\n- Limited coping mechanisms that are primarily distraction-based, which can lead to temporary relief but not long-term solutions.\n- History of trauma that complicates stress responses and management techniques.\n### Desired Outcomes\n- Improved time management skills to balance work, study, and personal life effectively.\n- Development of healthier coping strategies beyond distraction that can be used daily.\n- A sense of control and agency over stress levels and daily routines.\n- Tools to help process and manage emotional responses tied to past trauma.\n### Micro-feature Suggestions\n- A customizable daily planner with stress-reduction prompts integrated into time blocks.\n- Quick-access stress relief techniques (e.g., guided meditations, breathing exercises) available at the tap of a button.\n- Reminders for self-care breaks throughout the day to encourage regular downtime.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:14:40.446982",
+      "finished_at": "2025-08-12T22:14:46.005478",
+      "duration_s": 5.558496,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

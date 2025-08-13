@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- Persona 0 expressed feelings of being overwhelmed by their emotional state and often experiences self-shaming due to perceived failures in their professional and personal life.\n- They articulated a strong desire to reconnect with their values and build resilience but struggle with feelings of numbness and anxiety.\n- The persona emphasized the need for gentle support rather than pressure to perform or achieve.\n## Pain Points\n- Feelings of emotional overwhelm and numbness.\n- Internalized self-shaming stemming from burnout and health concerns.\n- Difficulties with social isolation and people-pleasing tendencies.\n- Challenges in recognizing and reconnecting with personal values.\n## Desired Outcomes\n- A sense of emotional stability and reduced anxiety.\n- Improved ability to externalize guilt and track emotional patterns.\n- Development of resilience and a supportive routine that fosters self-acceptance.\n- Enhanced social connections and reduced feelings of isolation.\n## Micro-feature Suggestions\n- Daily emotional check-ins that provide gentle prompts for self-reflection.\n- A journaling feature that allows users to externalize feelings and track emotional patterns over time.\n- A values re-connection tool that helps users identify and align daily actions with their core values.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:54:10.789052",
+      "finished_at": "2025-08-12T19:54:15.369625",
+      "duration_s": 4.580573,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

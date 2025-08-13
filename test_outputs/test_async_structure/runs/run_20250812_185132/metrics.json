@@ -1,0 +1,41 @@
+{
+  "project": "TestProject",
+  "run_timestamp": "20250812_185132",
+  "cycles": [
+    {
+      "cycle_number": 1,
+      "success": true,
+      "alignment_rate": 1.0,
+      "duration": 0.384085,
+      "personas_generated": 2,
+      "config_evolved": false,
+      "config_version": "v1",
+      "interviews": [
+        {
+          "success": true,
+          "mode": "Recovery",
+          "hypothesis": "Stress Management",
+          "persona_variant": 0,
+          "metrics": {
+            "started_at": "2025-08-12T18:51:32.675678",
+            "finished_at": "2025-08-12T18:51:32.675747",
+            "duration_s": 6.9e-05,
+            "model": "gpt-4o-mini"
+          }
+        },
+        {
+          "success": true,
+          "mode": "Recovery",
+          "hypothesis": "Stress Management",
+          "persona_variant": 1,
+          "metrics": {
+            "started_at": "2025-08-12T18:51:32.675760",
+            "finished_at": "2025-08-12T18:51:32.675794",
+            "duration_s": 3.4e-05,
+            "model": "gpt-4o-mini"
+          }
+        }
+      ]
+    }
+  ]
+}

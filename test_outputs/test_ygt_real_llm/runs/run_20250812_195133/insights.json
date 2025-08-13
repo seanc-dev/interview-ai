@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n- Persona 0 often feels overwhelmed by the demands of school and the pressure to please others, leading to frustration and burnout.\n- They recognize that their perfectionism contributes to feelings of inadequacy and time mismanagement.\n- The persona expresses a need for more emotional support and validation in their daily life.\n## Pain Points\n- Struggles with time management, often feeling like there is never enough time to meet expectations.\n- Experiences emotional overwhelm due to people-pleasing tendencies, leading to stress and frustration.\n- Internalizes feelings of failure, contributing to self-shaming and decreased motivation.\n## Desired Outcomes\n- A desire for better time management skills to balance responsibilities and personal well-being.\n- Seeking emotional validation and support to mitigate feelings of inadequacy and shame.\n- A hope to reconnect with personal values and priorities, fostering a sense of fulfillment.\n## Micro-feature Suggestions\n- Daily emotional check-ins to help track feelings and identify patterns.\n- Gentle reminders or nudges to prioritize self-care activities alongside academic responsibilities.\n- A reflective journaling feature that encourages users to externalize their thoughts and feelings without judgment.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T19:51:33.616570",
+      "finished_at": "2025-08-12T19:51:38.114695",
+      "duration_s": 4.498125,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n**Pain Points:**\n- Overwhelmed by financial stress and health concerns\n- Struggles with perfectionism and people-pleasing tendencies\n- Difficulty in prioritizing self-care amidst academic and personal demands\n- Feelings of numbness and lack of emotional engagement\n**Desired Outcomes:**\n- Develop effective stress management techniques\n- Build healthy habits that fit into a busy lifestyle\n- Create a sense of balance between personal needs and responsibilities\n- Increase emotional awareness and resilience\n**Micro-feature Suggestions:**\n- Daily check-ins for mood and stress levels\n- Guided exercises for mindfulness and self-compassion\n- Resource library with tips and strategies for managing perfectionism and financial stress\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:44:09.209259",
+      "finished_at": "2025-08-12T20:44:12.115105",
+      "duration_s": 2.905846,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n### Pain Points\n- Overwhelming caregiver responsibilities leading to burnout.\n- Difficulty balancing academic demands with personal life and relationships.\n- Identity crisis causing confusion about future direction and self-worth.\n- Feelings of isolation and lack of support from peers or family.\n- Stress from relationship issues, both romantic and platonic.\n### Desired Outcomes\n- A clearer sense of identity and direction in life.\n- Effective coping mechanisms to manage daily stress and caregiver duties.\n- Improved relationships through better communication and understanding.\n- A supportive community or network to share experiences and advice.\n- Practical tools for time management and stress reduction.\n### Micro-feature Suggestions\n- A daily journal feature for self-reflection and tracking emotional states.\n- A community forum for sharing experiences and support with peers.\n- Personalized stress management plans with guided exercises or resources.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:44:09.209418",
+      "finished_at": "2025-08-12T20:44:11.769605",
+      "duration_s": 2.560187,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

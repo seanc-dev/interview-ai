@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Yes\n## Key Insights\n- Persona 0 is struggling with feelings of exhaustion, self-doubt, and financial stress, contributing to a sense of burnout and emotional overwhelm. They desire support that is validating and gentle, rather than pressure-driven.\n## Pain Points\n- Chronic exhaustion and fatigue from work and personal life.\n- Feelings of imposter syndrome, leading to self-shaming and guilt.\n- Financial stress causing additional anxiety and limiting choices.\n- Difficulty managing relationships due to emotional overload.\n- Lack of structured support to process emotions and setbacks.\n## Desired Outcomes\n- A sense of emotional stability and reduced overwhelm.\n- Improved self-compassion and reframing of setbacks.\n- Better management of work-life balance to prevent burnout.\n- Enhanced resilience and ability to face challenges without shame.\n- Tools to track emotional patterns and values effectively.\n## Micro-feature Suggestions\n- Daily emotional check-in: a gentle prompt to reflect on feelings and experiences.\n- Reframe setback tool: guided questions to help shift perspective on challenges.\n- Financial stress tracker: a simple tool to log and manage financial concerns with coping strategies.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:14:53.593478",
+      "finished_at": "2025-08-12T22:14:58.270158",
+      "duration_s": 4.67668,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

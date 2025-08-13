@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- **Aligned?** Yes\n## Key Insights\n1. Persona 0 expresses feelings of numbness and struggles with people-pleasing tendencies, contributing to their emotional state.\n2. The persona feels overwhelmed with responsibilities as a caregiver, which exacerbates their health concerns and time management challenges.\n3. They desire to reconnect with their own emotional needs and values but find it difficult due to their current state.\n## Pain Points\n- Struggles with emotional numbness and overwhelming feelings.\n- People-pleasing tendencies lead to neglecting personal well-being.\n- Caregiver stress creates significant time management challenges.\n- Difficulty in recognizing and tracking emotional patterns.\n## Desired Outcomes\n- A more balanced emotional state, moving away from numbness.\n- Improved time management to create space for self-care.\n- Tools for externalizing guilt and reframing setbacks positively.\n- The ability to reconnect with personal values and emotional needs.\n## Micro-feature Suggestions\n- Daily check-in prompts focused on emotional awareness and self-reflection.\n- A guilt externalization tool that allows users to articulate feelings without judgment.\n- Soft nudges for time management reminders that prioritize self-care activities.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:44:18.486868",
+      "finished_at": "2025-08-12T20:44:22.223362",
+      "duration_s": 3.736494,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Overwhelmed by perfectionism, leading to chronic stress.\n- Difficulty managing time effectively, resulting in anxiety about deadlines.\n- Feelings of social isolation exacerbating emotional struggles.\n- Current coping strategies (distraction-based) are not effective long-term.\n### Desired Outcomes\n- Achieve a healthier work-life balance to reduce stress.\n- Build a consistent routine that incorporates stress management techniques.\n- Develop better time management skills to alleviate anxiety.\n- Foster a sense of community and connection with others.\n### Micro-feature Suggestions\n- Daily check-in feature that prompts users to reflect on stress levels and coping strategies.\n- Time-blocking tool to help schedule tasks and set boundaries effectively.\n- Community forum or group feature for users to share experiences and support each other.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:59:37.314123",
+      "finished_at": "2025-08-12T22:59:40.928609",
+      "duration_s": 3.614486,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- Persona 1 is navigating a challenging period marked by burnout and financial stress. Their emotional baseline is frustrated, and they are currently ambivalent about their coping strategies.\n## Pain Points\n- Feeling overwhelmed by daily responsibilities and expectations.\n- Difficulty in identifying effective coping mechanisms beyond distractions.\n- Financial stress contributing to feelings of inadequacy and anxiety.\n- A sense of identity crisis leading to uncertainty about future career paths.\n## Desired Outcomes\n- Develop healthier coping strategies that can be easily integrated into daily life.\n- Achieve a clearer sense of identity and purpose in their career.\n- Establish a support network or community that understands their struggles.\n- Reduce overall daily stress levels leading to improved mental well-being.\n## Micro-feature Suggestions\n- Daily guided mindfulness sessions tailored to address financial stress and burnout.\n- Stress level tracker with personalized tips based on user input and detected stress signals.\n- Community forum section for users to share experiences and coping strategies in a safe environment.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T22:59:37.314656",
+      "finished_at": "2025-08-12T22:59:41.890119",
+      "duration_s": 4.575463,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

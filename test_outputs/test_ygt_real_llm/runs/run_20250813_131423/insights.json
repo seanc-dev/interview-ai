@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n### Pain Points\n- Overwhelming feelings of perfectionism lead to frequent self-criticism.\n- Financial stress exacerbates anxiety, making it difficult to focus on work.\n- Difficulty in maintaining personal relationships due to emotional exhaustion.\n- Internalized feelings of failure, leading to shame and avoidance behaviors.\n### Desired Outcomes\n- Develop healthier coping strategies that foster emotional resilience.\n- Reconnect with personal values to find motivation beyond external pressures.\n- Improve communication skills to address relationship issues openly.\n- Create a sense of balance between work and personal life without guilt.\n### Micro-feature Suggestions\n- Gentle 2-min breathing check-in when perfectionism phrases are detected.\n- Value re-clarification prompt: users can identify and reflect on core values.\n- Relationship check-in: prompts to address communication and emotional needs with partners.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:14:23.864723",
+      "finished_at": "2025-08-13T13:14:27.883790",
+      "duration_s": 4.019067,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

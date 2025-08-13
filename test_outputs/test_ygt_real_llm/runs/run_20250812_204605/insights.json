@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n**Pain Points:**\n- Struggles with caregiver stress and feeling overwhelmed by responsibilities.\n- Feels guilty for not being able to do enough for others or themselves.\n- Experiences anxiety around managing time and prioritizing self-care.\n- Fear of judgment from others for taking time for themselves.\n**Desired Outcomes:**\n- A greater sense of balance between personal needs and caregiving responsibilities.\n- Reduced feelings of guilt and emotional overwhelm.\n- Improved time management and prioritization of self-care activities.\n- Enhanced emotional resilience and the ability to cope better with stress.\n**Micro-feature Suggestions:**\n- Daily emotional check-ins to help track moods and identify patterns.\n- Guilt-reframing prompts to help externalize negative feelings and reframe setbacks.\n- Time management tools that suggest self-care activities based on emotional states and available time.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-12T20:46:05.544109",
+      "finished_at": "2025-08-12T20:46:09.902062",
+      "duration_s": 4.357953,
+      "model": "gpt-4o-mini"
+    }
+  }
+]
