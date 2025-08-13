@@ -1,0 +1,17 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Emotional Overwhelm + Self-Shaming in Burnout",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- **Aligned?** Yes\n## Key Insights\n- Persona 0 identifies deeply with their perfectionism, which exacerbates their feelings of frustration and anxiety.\n- They express a strong desire for validation and understanding rather than solutions that may heighten their feelings of inadequacy.\n- The emotional burden of their health concerns paired with academic pressure contributes to an overwhelming sense of identity crisis.\n## Pain Points\n- Intense feelings of frustration and anxiety due to perfectionism.\n- Difficulty in managing emotional overload, leading to self-shaming.\n- An ongoing identity crisis impacting self-worth and purpose.\n- Fear of failure and the pressure to meet high expectations, both self-imposed and external.\n## Desired Outcomes\n- A sense of relief from emotional overwhelm and self-judgment.\n- Improved emotional regulation and the ability to articulate feelings without shame.\n- Reconnection with personal values and a clearer sense of identity.\n- A supportive structure that encourages gradual progress without pressure.\n## Micro-feature Suggestions\n- Gentle self-reflection prompts that encourage externalizing feelings, like \"What am I feeling right now?\" followed by validation.\n- A mood tracker that allows users to identify patterns and triggers over time.\n- A supportive nudge feature that suggests grounding techniques (e.g., deep breathing or mindful moments) during high-stress periods.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:32:41.082862",
+      "finished_at": "2025-08-13T13:32:45.353090",
+      "duration_s": 4.270228,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

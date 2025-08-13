@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "## Alignment\n- Aligned? Yes\n## Key Insights\n- **Pain Points:**\n  - Overwhelming pressure to perform academically leads to anxiety.\n  - Difficulty in balancing study time with self-care and relaxation.\n  - Feelings of inadequacy and perfectionism create a cycle of stress.\n  - Financial concerns regarding tuition and living expenses heighten stress levels.\n- **Desired Outcomes:**\n  - Develop effective stress-reduction techniques that can be easily integrated into daily life.\n  - Cultivate a sense of accomplishment without the pressure of perfectionism.\n  - Establish a balanced routine that includes time for relaxation and hobbies.\n  - Gain confidence in managing financial stress through better budgeting and planning.\n- **Micro-feature Suggestions:**\n  - Daily mood tracker to identify stress triggers and patterns.\n  - Quick access to guided meditations or mindfulness exercises tailored to academic stress.\n  - Weekly goal-setting feature to break down larger tasks into manageable steps with reminders.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:32:28.191199",
+      "finished_at": "2025-08-13T13:32:31.984339",
+      "duration_s": 3.79314,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\n**Aligned?** Yes\n## Key Insights\n- Persona 1 feels a significant weight of stress from both imposter syndrome and financial instability.\n- They express a desire for practical tools to help manage daily stressors and build resilience.\n## Pain Points\n- Struggling with feelings of inadequacy and self-doubt due to imposter syndrome.\n- Financial stress creates constant worry and anxiety, impacting daily life.\n- Difficulty in setting boundaries with others, leading to overcommitment and burnout.\n- Limited access to effective coping strategies that are tailored to their unique situation.\n## Desired Outcomes\n- Achieve a greater sense of self-worth and confidence in professional abilities.\n- Develop practical skills to manage financial stress effectively.\n- Learn to set healthier boundaries in personal and professional relationships.\n- Cultivate a routine that includes stress relief practices, such as mindfulness or exercise.\n## Micro-feature Suggestions\n- Daily affirmation feature that prompts users to acknowledge their achievements and worth.\n- Budgeting integration tool that provides tailored financial advice and stress-reduction techniques.\n- Boundary-setting template that guides users through creating and communicating personal limits effectively.\n",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:32:28.191570",
+      "finished_at": "2025-08-13T13:32:32.109317",
+      "duration_s": 3.917747,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

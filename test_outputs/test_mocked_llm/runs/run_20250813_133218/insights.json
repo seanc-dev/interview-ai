@@ -1,0 +1,32 @@
+[
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 0,
+    "insights": "{\"name\": \"Sarah, 28\", \"emotional_baseline\": \"overwhelmed\", \"background\": \"Early career professional struggling with work-life balance\", \"coping_style\": \"support-seeking\", \"readiness_level\": \"ready\"}",
+    "persona": "",
+    "interview_transcript": "",
+    "metrics": {
+      "started_at": "2025-08-13T13:32:18.796269",
+      "finished_at": "2025-08-13T13:32:18.796679",
+      "duration_s": 0.00041,
+      "model": "gpt-4o-mini"
+    }
+  },
+  {
+    "success": true,
+    "mode": "Recovery",
+    "hypothesis": "Stress Management",
+    "persona_variant": 1,
+    "insights": "## Alignment\nAligned? Yes\n## Key Insights\n- User finds stress management tools helpful\n- Daily check-ins are valuable\n- Would like more personalized recommendations\n## Pain Points\n- Too many notifications\n- App feels overwhelming at times\n- Needs better progress tracking\n## Desired Outcomes\n- Simpler interface\n- More actionable advice\n- Better integration with daily routine\n",
+    "persona": "",
+    "interview_transcript": "Sarah expressed feeling overwhelmed by her current workload and found the concept of daily wellness check-ins appealing. She mentioned struggling with work-life balance and would appreciate tools that help her set boundaries and manage stress more effectively.\n",
+    "metrics": {
+      "started_at": "2025-08-13T13:32:18.796721",
+      "finished_at": "2025-08-13T13:32:18.796825",
+      "duration_s": 0.000104,
+      "model": "gpt-4o-mini"
+    }
+  }
+]

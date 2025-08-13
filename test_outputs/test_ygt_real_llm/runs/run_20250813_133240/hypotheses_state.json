@@ -1,0 +1,13 @@
+{
+  "hypotheses": {
+    "Emotional Overwhelm + Self-Shaming in Burnout": {
+      "count": 1,
+      "aligned": 0,
+      "misaligned": 1
+    }
+  },
+  "promote": [],
+  "retire": [
+    "Emotional Overwhelm + Self-Shaming in Burnout"
+  ]
+}
